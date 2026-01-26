@@ -22,7 +22,7 @@
     </div>
 
     <div class="questionBar">
-      <input v-model="messageContent" type="text" id="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
+      <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <button @click="fileInput.click()">+</button>
       <img v-for="imageUrl in imageUrls" :src="imageUrl" style="max-width: 200px;margin: 0 5px;" />
@@ -133,6 +133,14 @@ const handleFileChange = (e) => {
 
 .timeTag {
   font-size: 0.1em;
+}
+
+.sendMessage {
+  width: 100%;
+  outline: none;
+  border: none;
+  border-radius: 10px;
+  background-color: whitesmoke;
 }
 
 .yourStyle {
