@@ -1,73 +1,77 @@
 <template>
   <div class="container">
     <div class="headBar">
-      <p>Chat Bot</p>
-
+      <p>shall we talk</p>
+      <button class="clearBtn" @click="clearMessage">CLEAR</button>
     </div>
-    <div class="scrollArea" ref="scrollArea">
-      <div class="questionTank" v-for="message in messages"
-        :class="{ yourStyle: message.role === 'you', myStyle: message.role === 'me' }">
+    <div class="scrollArea">
+      <!-- 模版组件，根据role成员属性区分样式 -->
+      <div class="messageBox" v-for="message in messages"
+      :class="{yourStyle:message.role==='you',myStyle:message.role==='me'}">
         <div class="articleArea">
-          <p>{{ message.content }}</p>
+          {{ message.content }}
         </div>
-        <img v-for="imageUrl in message.imageUrls" :src="imageUrl" style="max-width: 200px;margin: 5px 0;" />
         <div class="timeTag">
-          <p>{{ message.time }}</p>
+          {{ message.time }}
         </div>
       </div>
     </div>
-
-    <div class="questionBar">
-      <input v-model="messageContent" type="text" id="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
-      <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
-      <button @click="fileInput.click()">+</button>
-      <img v-for="imageUrl in imageUrls" :src="imageUrl" style="max-width: 200px;margin: 0 5px;" />
+    <div class="textArea">
+      <input v-model="messageContent" class="sendMessage" type="text"  placeholder="请输入文本" @keypress="sendMessageTo">
+      <!--
+        上传图片 使用file表单 拿到file生成本地url push到message.   事件实例.target.files=>
+        预览图片 img标签便利渲染 message的url
+        发送图片 消息盒子img标签便利渲染 url
+      -->
+      <input type="file" multiple ref="imageInput" class="getImageBtn" style="display: none;" @change="getImageUrl">
+      <button @click="imageInput.click()">+</button>
+      
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref } from 'vue';
 
-const messageContent = ref('')
-const messages = ref(['初始化1', '初始化2', '初始化3'].map((value) => {
-  const date = new Date(Date.now())
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return { content: value, time: `${hours}:${minutes} pm`, role: 'you' }
+const messageContent=ref('')
+const exampleArr = ['texas blue', 'GONE GONE/ THANK YOU', 'Liz']
+// 创建响应式message数组
+const messages = ref(exampleArr.map((value) => {
+  const hours = new Date().getHours().toString().padStart(2, '0');
+  const minutes = new Date().getMinutes().toString().padStart(2, '0')
+  return { content: value, time: `${hours}:${minutes} ${hours < 12 ? 'am' : 'pm'}`, role: "you" }
 }))
 
-const scrollArea = ref(null);
-
-const sendInQuestion = (param1) => {
-  if (param1.key !== 'Enter' || messageContent.value === '') return;
-  const date = new Date(Date.now())
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  messages.value.push({ content: messageContent.value, time: `${hours}:${minutes} pm`, role: 'me', imageUrls: imageUrls.value })
-  messageContent.value = ''
-  imageUrls.value = []
-  messages.value.push({ content: `answer ${messages.value.length}`, time: `${hours}:${minutes} pm`, role: 'you' })
-  nextTick(() => {
-    scrollArea.value.scrollTo({
-      top: scrollArea.value.scrollHeight,
-      left: 0,
-      behavior: "smooth",
-    })
-  })
+const clearMessage=()=>{
+  messages.value=[];
+  console.log(messages);
 }
+  //发送输入框内容时将本次输入信息添加到message数组中去渲染,清空输入框
+const sendMessageTo=(sendKey)=>{
+  // console.log(sendKey.key);
+  if(sendKey.key!=='Enter'||messageContent.value==='') return
+  const hours = new Date().getHours().toString().padStart(2, '0');
+  const minutes = new Date().getMinutes().toString().padStart(2, '0');
+  messages.value.push({content:messageContent.value,time: `${hours}:${minutes} ${hours < 12 ? 'am' : 'pm'}`,role:'me'})
+  messageContent.value=''
+  messages.value.push({content:`response${messages.value.length}`,time: `${hours}:${minutes} ${hours < 12 ? 'am' : 'pm'}`,role:'you'})
+  console.log(messages);
+}
+console.log(messages);
 
-const fileInput = ref(null);
-const imageUrls = ref([]);
+const imageInput=ref(null) //vue方法获取组件
+const imageUrls=e=ref([])
 
-const handleFileChange = (e) => {
-  const files = e.target.files;
-  if (files.length > 0) {
-    for (const file of files) {
-      imageUrls.value.push(URL.createObjectURL(file))
-    }
+const getImageUrl=(e)=>{
+  console.log(e);
+  const files=e.target.files
+  if(files.length>0){
+    for(let i=0;i<files.length-1;i++)
+    imageUrls.value.push(files[i])
   }
-};
+  const url=URL.createObjectURL(files)
+
+}
 </script>
 
 <style scoped>
@@ -99,17 +103,13 @@ const handleFileChange = (e) => {
   font-weight: bold;
 }
 
-.questionTank {
-  padding: 10px;
-  margin-bottom: 20px;
-  background-color: white;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  width: fit-content
+  
+.scrollArea {
+  flex: 1;
+  overflow-y: auto;
 }
 
-.questionBar {
+.textArea {
   display: flex;
   /* flex-direction: column; */
   margin: 0 auto;
@@ -118,34 +118,19 @@ const handleFileChange = (e) => {
   padding: 20px;
   border-radius: 15px;
   flex-shrink: 0;
-
 }
 
-.scrollArea {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.articleArea {
-  margin-bottom: 5px;
-}
-
-#sendMessage {
-  width: 100%;
-  outline: none;
-  border: none;
+.messageBox {
+  padding: 10px;
+  margin-bottom: 20px;
+  background-color: white;
   border-radius: 10px;
-  background-color: whitesmoke;
-}
-
-.sendBtn {
-  height: 30px;
-  width: 60px;
-  margin: 0 auto;
-}
-
-.timeTag {
-  font-size: 0.1em;
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  max-width: 250px;
+  word-break: break-all;
+  word-wrap: break-word;
 }
 
 .yourStyle {
@@ -160,9 +145,11 @@ const handleFileChange = (e) => {
   margin-right: 40px;
 }
 
-.toolBar {
-  height: 100px;
-  width: 100px;
-  background-color: gray;
+.sendMessage {
+  width: 100%;
+  outline: none;
+  border: none;
+  border-radius: 10px;
+  background-color: whitesmoke;
 }
 </style>
