@@ -5,14 +5,18 @@
 
     </div>
     <div class="scrollArea" ref="scrollArea">
-      <div class="questionTank" v-for="message in messages"
-        :class="{ yourStyle: message.role === 'you', myStyle: message.role === 'me' }">
-        <div class="articleArea">
-          <p>{{ message.content }}</p>
-        </div>
-        <img v-for="imageUrl in message.imageUrls" :src="imageUrl" style="max-width: 200px;margin: 5px 0;" />
-        <div class="timeTag">
-          <p>{{ message.time }}</p>
+      <div v-for="message in messages" style="display: flex;flex-direction: column;"
+        :class="{ yourAlign: message.role === 'you', myAlign: message.role === 'me' }">
+        <div class="questionTank" :class="{ yourStyle: message.role === 'you', myStyle: message.role === 'me' }">
+          <div class="articleArea">
+            <p>{{ message.content }}</p>
+          </div>
+          <div v-for="imageUrl in message.imageUrls">
+            <img :src="imageUrl" style="max-width: 200px;margin: 5px 0;" />
+          </div>
+          <div class="timeTag">
+            <p>{{ message.time }}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -104,9 +108,7 @@ const handleFileChange = (e) => {
   margin-bottom: 20px;
   background-color: white;
   border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  width: fit-content
+  width: fit-content;
 }
 
 .questionBar {
@@ -118,7 +120,6 @@ const handleFileChange = (e) => {
   padding: 20px;
   border-radius: 15px;
   flex-shrink: 0;
-
 }
 
 .scrollArea {
@@ -130,39 +131,25 @@ const handleFileChange = (e) => {
   margin-bottom: 5px;
 }
 
-#sendMessage {
-  width: 100%;
-  outline: none;
-  border: none;
-  border-radius: 10px;
-  background-color: whitesmoke;
-}
-
-.sendBtn {
-  height: 30px;
-  width: 60px;
-  margin: 0 auto;
-}
-
 .timeTag {
   font-size: 0.1em;
 }
 
 .yourStyle {
   background-color: #e9eef6;
-  margin-right: auto;
   margin-left: 40px;
 }
 
 .myStyle {
   background-color: greenyellow;
-  margin-left: auto;
   margin-right: 40px;
 }
 
-.toolBar {
-  height: 100px;
-  width: 100px;
-  background-color: gray;
+.yourAlign {
+  align-items: flex-start;
+}
+
+.myAlign {
+  align-items: flex-end;
 }
 </style>
