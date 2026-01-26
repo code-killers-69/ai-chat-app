@@ -24,15 +24,16 @@
     <div class="questionBar">
       <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
-      <button @click="fileInput.click()">+</button>
-      <img v-for="imageUrl in imageUrls" :src="imageUrl" style="max-width: 200px;margin: 0 5px;" />
+      <button @click="fileInput.click()" v-if="imageShow">+</button>
+      <img v-for="imageUrl in imageUrls" :src="imageUrl" style="max-width: 200px;margin: 0 5px;" ref="imageItem" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, useTemplateRef } from 'vue';
 
+const imageShow = ref(true)
 const messageContent = ref('')
 const messages = ref(['初始化1', '初始化2', '初始化3'].map((value) => {
   const date = new Date(Date.now())
@@ -58,20 +59,29 @@ const sendInQuestion = (param1) => {
       left: 0,
       behavior: "smooth",
     })
+    imageShow.value = !imageShow.value
   })
 }
 
+const imageRefs = useTemplateRef("imageItem")
 const fileInput = ref(null);
 const imageUrls = ref([]);
 
+
 const handleFileChange = (e) => {
+
   const files = e.target.files;
   if (files.length > 0) {
     for (const file of files) {
       imageUrls.value.push(URL.createObjectURL(file))
     }
+    nextTick(() => {
+      imageShow.value = !imageShow.value
+    })
   }
+
 };
+
 </script>
 
 <style scoped>
