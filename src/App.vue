@@ -39,29 +39,31 @@
 <script setup>
 import { ref, nextTick, useTemplateRef } from 'vue';
 
+const getNow = () => {
+  const date = new Date(Date.now())
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return { hours, minutes }
+}
+
 const imageShow = ref(true)
 const messageContent = ref('')
 const messages = ref(['初始化1', '初始化2', '初始化3'].map((value) => {
-  const date = new Date(Date.now())
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return { content: value, time: `${hours}:${minutes} pm`, role: 'you' }
+  const now = getNow();
+  return { content: value, time: `${now.hours}:${now.minutes} pm`, role: 'you' }
 }))
 
 const scrollArea = ref(null);
-
 const sendInQuestion = (param1) => {
   if (param1.key !== 'Enter' || (messageContent.value === '' && imageUrls.value.length === 0)) return;
-  const date = new Date(Date.now())
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  messages.value.push({ content: messageContent.value, time: `${hours}:${minutes} pm`, role: 'me', imageUrls: imageUrls.value })
+  const now = getNow();
+  messages.value.push({ content: messageContent.value, time: `${now.hours}:${now.minutes} pm`, role: 'me', imageUrls: imageUrls.value })
   if (imageUrls.value.length != 0) (
     imageShow.value = !imageShow.value
   )
   messageContent.value = ''
   imageUrls.value = []
-  messages.value.push({ content: `answer ${messages.value.length}`, time: `${hours}:${minutes} pm`, role: 'you' })
+  messages.value.push({ content: `answer ${messages.value.length}`, time: `${now.hours}:${now.minutes} pm`, role: 'you' })
   nextTick(() => {
     scrollArea.value.scrollTo({
       top: scrollArea.value.scrollHeight,
