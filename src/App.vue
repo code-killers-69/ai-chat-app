@@ -20,15 +20,17 @@
       </div>
     </div>
     <div class="questionBar">
-      <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
+      <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion"
+        @paste="handlePaste">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <Transition>
-        <div class="addImage">
-          <button @click="fileInput.click()" v-if="imageShow" class="addBtn">+</button>
-        </div>
+        <button @click="fileInput.click()" v-if="imageShow" class="addBtn">+</button>
       </Transition>
-      <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width: none;">
-        <img v-for="imageUrl in imageUrls" :src="imageUrl" style="min-width:100px;margin: 0 2px;" ref="imageItem" />
+      <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width: none;flex-shrink: 0;">
+        <TransitionGroup>
+          <img v-for="(imageUrl, index) in imageUrls" :key="index" :src="imageUrl"
+            style="min-width:100px;margin: 0 2px;" ref="imageItem" />
+        </TransitionGroup>
       </div>
     </div>
   </div>
@@ -49,7 +51,7 @@ const messages = ref(['初始化1', '初始化2', '初始化3'].map((value) => {
 const scrollArea = ref(null);
 
 const sendInQuestion = (param1) => {
-  if (param1.key !== 'Enter' || messageContent.value === '') return;
+  if (param1.key !== 'Enter' || (messageContent.value === '' && imageUrls.value.length === 0)) return;
   const date = new Date(Date.now())
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -75,22 +77,37 @@ const imageUrls = ref([]);
 
 const handleFileChange = (e) => {
   const files = e.target.files;
-  if (files.length > 0) {
-    for (const file of files) {
-      imageUrls.value.push(URL.createObjectURL(file))
-    }
-    nextTick(() => {
-      let count = 0;
-      for (const imageRef of imageRefs.value) {
-        imageRef.onload = () => {
-          if (++count === imageRefs.value.length) {
-            imageShow.value = !imageShow.value
-          }
+  if (files.length === 0) return;
+  for (const file of files) {
+    imageUrls.value.push(URL.createObjectURL(file))
+  }
+  handleWaitImagesLoad()
+};
+
+const handleWaitImagesLoad = () => {
+  nextTick(() => {
+    let count = 0;
+    for (const imageRef of imageRefs.value) {
+      imageRef.onload = () => {
+        if (++count === imageRefs.value.length) {
+          imageShow.value = !imageShow.value
         }
       }
-    })
+    }
+  })
+}
+
+const handlePaste = (e) => {
+  const files = e.clipboardData.files;
+  if (files.length === 0) return;
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      imageUrls.value.push(URL.createObjectURL(file))
+      e.preventDefault();
+    }
   }
-};
+  handleWaitImagesLoad()
+}
 </script>
 
 <style scoped>
@@ -181,9 +198,12 @@ const handleFileChange = (e) => {
 }
 
 
-.v-enter-active,
+.v-enter-active {
+  transition: all 1s ease;
+}
+
 .v-leave-active {
-  transition: opacity 0.5s ease;
+  transition: all 0.5s ease;
 }
 
 .v-enter-from,
@@ -192,12 +212,12 @@ const handleFileChange = (e) => {
 }
 
 .addBtn {
-  height: 20px;
-  width: 20px;
+  height: 100px;
+  width: 100px;
+  flex-shrink: 0;
   background-color: rgb(223, 223, 223);
   border: none;
   border-radius: 5px;
-  transition: all 0.4s ease;
   font-weight: 700;
 }
 
