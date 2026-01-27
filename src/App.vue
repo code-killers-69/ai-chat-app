@@ -2,7 +2,6 @@
   <div class="container">
     <div class="headBar">
       <p>Chat Bot</p>
-
     </div>
     <div class="scrollArea" ref="scrollArea">
       <div v-for="message in messages" style="display: flex;flex-direction: column;"
@@ -20,7 +19,6 @@
         </div>
       </div>
     </div>
-
     <div class="questionBar">
       <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
@@ -37,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, useTemplateRef, TransitionGroup } from 'vue';
+import { ref, nextTick, useTemplateRef } from 'vue';
 
 const imageShow = ref(true)
 const messageContent = ref('')
@@ -61,9 +59,6 @@ const sendInQuestion = (param1) => {
   )
   messageContent.value = ''
   imageUrls.value = []
-
-
-
   messages.value.push({ content: `answer ${messages.value.length}`, time: `${hours}:${minutes} pm`, role: 'you' })
   nextTick(() => {
     scrollArea.value.scrollTo({
