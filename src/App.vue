@@ -24,14 +24,18 @@
     <div class="questionBar">
       <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
-      <button @click="fileInput.click()" v-if="imageShow">+</button>
+      <Transition>
+        <div class="addImage">
+          <button @click="fileInput.click()" v-if="imageShow" class="addBtn">+</button>
+        </div>
+      </Transition>
       <img v-for="imageUrl in imageUrls" :src="imageUrl" style="max-width: 200px;margin: 0 5px;" ref="imageItem" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, useTemplateRef } from 'vue';
+import { ref, nextTick, useTemplateRef, TransitionGroup } from 'vue';
 
 const imageShow = ref(true)
 const messageContent = ref('')
@@ -50,8 +54,14 @@ const sendInQuestion = (param1) => {
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
   messages.value.push({ content: messageContent.value, time: `${hours}:${minutes} pm`, role: 'me', imageUrls: imageUrls.value })
+  if (imageUrls.value.length != 0) (
+    imageShow.value = !imageShow.value
+  )
   messageContent.value = ''
   imageUrls.value = []
+
+
+
   messages.value.push({ content: `answer ${messages.value.length}`, time: `${hours}:${minutes} pm`, role: 'you' })
   nextTick(() => {
     scrollArea.value.scrollTo({
@@ -59,7 +69,6 @@ const sendInQuestion = (param1) => {
       left: 0,
       behavior: "smooth",
     })
-    imageShow.value = !imageShow.value
   })
 }
 
@@ -75,12 +84,29 @@ const handleFileChange = (e) => {
     for (const file of files) {
       imageUrls.value.push(URL.createObjectURL(file))
     }
+
+
     nextTick(() => {
-      imageShow.value = !imageShow.value
-    })
+      let count = 0;
+      for (const imageRef of imageRefs.value) {
+        imageRef.onload = () => {
+          count++
+          if (count === imageRefs.value.length) {
+            imageShow.value = !imageShow.value
+          }
+
+        }
+
+      }
+    }
+    )
   }
 
 };
+
+// const imageLoaded=()=>{
+//   console.error('all loaded');
+// }
 
 </script>
 
@@ -169,5 +195,30 @@ const handleFileChange = (e) => {
 
 .myAlign {
   align-items: flex-end;
+}
+
+
+.v-enter-active,
+.v-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  opacity: 0;
+}
+
+.addBtn {
+  height: 20px;
+  width: 20px;
+  background-color: rgb(223, 223, 223);
+  border: none;
+  border-radius: 5px;
+  transition: all 0.4s ease;
+  font-weight: 700;
+}
+
+.addBtn:hover {
+  background-color: rgb(192, 192, 192);
 }
 </style>
