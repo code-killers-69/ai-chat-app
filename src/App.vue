@@ -29,7 +29,7 @@
       <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width: none;flex-shrink: 0;">
         <TransitionGroup>
           <img v-for="(imageUrl, index) in imageUrls" :key="index" :src="imageUrl"
-            style="min-width:100px;margin: 0 2px;" ref="imageItem" />
+            style="min-width:100px;max-width: 100px;margin: 0 2px;" ref="imageItem" />
         </TransitionGroup>
       </div>
     </div>
