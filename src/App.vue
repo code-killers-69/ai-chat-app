@@ -29,7 +29,9 @@
           <button @click="fileInput.click()" v-if="imageShow" class="addBtn">+</button>
         </div>
       </Transition>
-      <img v-for="imageUrl in imageUrls" :src="imageUrl" style="max-width: 200px;margin: 0 5px;" ref="imageItem" />
+      <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width: none;">
+        <img v-for="imageUrl in imageUrls" :src="imageUrl" style="min-width:100px;margin: 0 2px;" ref="imageItem" />
+      </div>
     </div>
   </div>
 </template>
@@ -76,38 +78,24 @@ const imageRefs = useTemplateRef("imageItem")
 const fileInput = ref(null);
 const imageUrls = ref([]);
 
-
 const handleFileChange = (e) => {
-
   const files = e.target.files;
   if (files.length > 0) {
     for (const file of files) {
       imageUrls.value.push(URL.createObjectURL(file))
     }
-
-
     nextTick(() => {
       let count = 0;
       for (const imageRef of imageRefs.value) {
         imageRef.onload = () => {
-          count++
-          if (count === imageRefs.value.length) {
+          if (++count === imageRefs.value.length) {
             imageShow.value = !imageShow.value
           }
-
         }
-
       }
-    }
-    )
+    })
   }
-
 };
-
-// const imageLoaded=()=>{
-//   console.error('all loaded');
-// }
-
 </script>
 
 <style scoped>
