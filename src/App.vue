@@ -23,8 +23,8 @@
       <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <Transition>
-        <div class="addImage">
-          <button @click="fileInput.click()" v-if="imageShow" class="addBtn">+</button>
+        <div class="testDiv" v-if="imageShow">
+          <button @click="fileInput.click()" class="addBtn">+</button>
         </div>
       </Transition>
       <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width: none;">
@@ -183,7 +183,7 @@ const handleFileChange = (e) => {
 
 .v-enter-active,
 .v-leave-active {
-  transition: opacity 0.5s ease;
+  transition: opacity 1s ease;
 }
 
 .v-enter-from,
@@ -197,7 +197,7 @@ const handleFileChange = (e) => {
   background-color: rgb(223, 223, 223);
   border: none;
   border-radius: 5px;
-  transition: all 0.4s ease;
+  transition: all 0.5s ease;
   font-weight: 700;
 }
 
