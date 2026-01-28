@@ -24,7 +24,7 @@
         @paste="handlePaste">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <Transition>
-        <button @click="fileInput.click()" v-if="imageShow" class="addBtn">+</button>
+        <button @click="fileInput.click()" v-show="imageShow" class="addBtn">+</button>
       </Transition>
       <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width: none;flex-shrink: 0;">
         <TransitionGroup>
