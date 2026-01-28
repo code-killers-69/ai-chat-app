@@ -10,8 +10,8 @@
           <div class="articleArea">
             <p>{{ message.content }}</p>
           </div>
-          <div v-for="imageUrl in message.imageUrls">
-            <img :src="imageUrl" style="max-width: 200px;margin: 5px 0;" />
+          <div v-for="image in message.images">
+            <img :src="image.imageUrl" style="max-width: 200px;margin: 5px 0;" />
           </div>
           <div class="timeTag">
             <p>{{ message.time }}</p>
@@ -26,11 +26,15 @@
       <Transition>
         <button @click="fileInput.click()" v-show="imageShow" class="addBtn">+</button>
       </Transition>
-      <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width: none;flex-shrink: 0;">
-        <TransitionGroup>
-          <img v-for="(imageUrl, index) in imageUrls" :key="index" :src="imageUrl"
-            style="min-width:100px;max-width: 100px;margin: 0 2px;" ref="imageItem" />
-        </TransitionGroup>
+      <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width:none;flex-shrink: 0;">
+        <div v-for="(image, index) in images" :key="index" ref="imageContainers">
+          <TransitionGroup name="wait-image">
+            <div v-if="!image.isLoaded && index < 2" class="waitBlock" :key="`${index}waitBlock`">
+              <div class="spinner"></div>
+            </div>
+            <img :src="image.imageUrl" class="imageBlock" v-show="image.isLoaded" :key="`${index}waitBlock`" />
+          </TransitionGroup>
+        </div>
       </div>
     </div>
   </div>
@@ -55,14 +59,14 @@ const messages = ref(['初始化1', '初始化2', '初始化3'].map((value) => {
 
 const scrollArea = ref(null);
 const sendInQuestion = (param1) => {
-  if (param1.key !== 'Enter' || (messageContent.value === '' && imageUrls.value.length === 0)) return;
+  if (param1.key !== 'Enter' || (messageContent.value === '' && images.value.length === 0)) return;
   const now = getNow();
-  messages.value.push({ content: messageContent.value, time: `${now.hours}:${now.minutes} pm`, role: 'me', imageUrls: imageUrls.value })
-  if (imageUrls.value.length != 0) (
+  messages.value.push({ content: messageContent.value, time: `${now.hours}:${now.minutes} pm`, role: 'me', images: images.value })
+  if (images.value.length != 0) (
     imageShow.value = !imageShow.value
   )
   messageContent.value = ''
-  imageUrls.value = []
+  images.value = []
   messages.value.push({ content: `answer ${messages.value.length}`, time: `${now.hours}:${now.minutes} pm`, role: 'you' })
   nextTick(() => {
     scrollArea.value.scrollTo({
@@ -73,15 +77,15 @@ const sendInQuestion = (param1) => {
   })
 }
 
-const imageRefs = useTemplateRef("imageItem")
+const imageContainerRefs = useTemplateRef("imageContainers")
 const fileInput = ref(null);
-const imageUrls = ref([]);
+const images = ref([]);
 
 const handleFileChange = (e) => {
   const files = e.target.files;
   if (files.length === 0) return;
   for (const file of files) {
-    imageUrls.value.push(URL.createObjectURL(file))
+    images.value.push({ imageUrl: URL.createObjectURL(file), isLoaded: false })
   }
   handleWaitImagesLoad()
 };
@@ -89,9 +93,11 @@ const handleFileChange = (e) => {
 const handleWaitImagesLoad = () => {
   nextTick(() => {
     let count = 0;
-    for (const imageRef of imageRefs.value) {
+    for (const [index, imageContainerRef] of Object.entries(imageContainerRefs.value)) {
+      const imageRef = imageContainerRef.querySelector('img')
       imageRef.onload = () => {
-        if (++count === imageRefs.value.length) {
+        images.value[index].isLoaded = true;
+        if (++count === imageContainerRefs.value.length) {
           imageShow.value = !imageShow.value
         }
       }
@@ -104,7 +110,7 @@ const handlePaste = (e) => {
   if (files.length === 0) return;
   for (const file of files) {
     if (file.type.startsWith('image/')) {
-      imageUrls.value.push(URL.createObjectURL(file))
+      images.value.push({ imageUrl: URL.createObjectURL(file), isLoaded: false })
       e.preventDefault();
     }
   }
@@ -199,13 +205,66 @@ const handlePaste = (e) => {
   align-items: flex-end;
 }
 
+.imageBlock {
+  min-width: 100px;
+  width: 100px;
+  height: 100px;
+  margin: 0 2px;
+  object-fit: cover;
+  border: none;
+  border-radius: 5px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.waitBlock {
+  width: 100px;
+  height: 100px;
+  margin: 0 2px;
+  border: none;
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
 
 .v-enter-active {
-  transition: all 1s ease;
+  transition: opacity 1s ease;
 }
 
 .v-leave-active {
-  transition: all 0.5s ease;
+  transition: opacity 0.5s ease;
+}
+
+.wait-image-enter-active {
+  transition: opacity 1s ease;
+}
+
+.wait-image-leave-active {
+  transition: opacity 0.5s ease;
+  position: absolute;
+}
+
+.wait-image-enter-from,
+.wait-image-leave-to {
+  opacity: 0;
 }
 
 .v-enter-from,
