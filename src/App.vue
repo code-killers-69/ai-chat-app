@@ -30,8 +30,10 @@
         <img :src="imageUrl"
           style=" position: absolute; top:0;left:0;  min-width:100px;height: 100px; margin: 0 2px; border-radius: 5px;transition: all 0.4s ease;"
           ref="imageItem" />
-      </div><br>
-      <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
+      </div>
+      <!-- <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion"> -->
+      <div ref="newInput" contenteditable="true" class="pasteableInput sendMessage" placeholder="请输入文本"
+        @keypress="sendInQuestion" @paste="pasteDetected"></div>
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <Transition>
         <div class="testDiv" v-if="imageShow">
@@ -58,15 +60,17 @@ const messages = ref(['初始化1', '这阳光又兼大风的沐浴耗尽我的�
 const scrollArea = ref(null);
 
 const sendInQuestion = (param1) => {
-  if (param1.key !== 'Enter' || messageContent.value === '') return;
+  if (param1.key !== 'Enter' || newInput.value.textContent === '') return;
   const date = new Date(Date.now())
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
-  messages.value.push({ content: messageContent.value, time: `${hours}:${minutes} ${hours < 12 ? "AM" : "PM"}`, role: 'me', imageUrls: imageUrls.value })
+  messages.value.push({ content: newInput.value.textContent, time: `${hours}:${minutes} ${hours < 12 ? "AM" : "PM"}`, role: 'me', imageUrls: imageUrls.value })
   if (imageUrls.value.length != 0) (
-    imageShow.value = !imageShow.value
+    imageShow.value = 'true'
   )
-  messageContent.value = ''
+
+  // messageContent.value = ''
+  newInput.value.textContent = ''
   imageUrls.value = []
   messages.value.push({ content: `answer ${messages.value.length}`, time: `${hours}:${minutes} ${hours < 12 ? "AM" : "PM"}`, role: 'you' })
   nextTick(() => {
@@ -100,6 +104,24 @@ const handleFileChange = (e) => {
     })
   }
 };
+
+
+const newInput = ref(null)
+
+const pasteDetected = (e) => {
+  let file = null;
+  const items = (e.clipboardData || window.Clipboard).items
+  if (items && items.length) {
+    for (const item of items) {
+      if (item.type.includes('image')) {
+        file = item.getAsFile();
+        break;
+      }
+    }
+  }
+
+  imageUrls.value.push(URL.createObjectURL(file))
+}
 </script>
 
 <style scoped>
@@ -221,6 +243,19 @@ const handleFileChange = (e) => {
 
 .addBtn:hover {
   background-color: rgb(192, 192, 192);
+}
+
+[contenteditable] img {
+  height: 100px;
+  width: 100px;
+  display: block;
+  /* 避免图片下方出现空白边距 */
+}
+
+:deep(.pasteableInput img) {
+  height: 100px;
+  width: 100px;
+  display: none;
 }
 
 /* .placeHolderShow{
