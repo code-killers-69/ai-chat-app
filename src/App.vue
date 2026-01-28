@@ -10,6 +10,7 @@
           <div class="articleArea">
             <p>{{ message.content }}</p>
           </div>
+          <!-- 这里发送的内容有图片的情况下，原本的滚动到底部逻辑此时不会真正滚动到底部，原因是滚动逻辑开始时是所有dom挂载后，虽然此时img已经挂载了，但是还没有加载出图片内容，所以没有高度，所以图片的高度没有计算到滚动长度中，于是不能真正滚动到底部。解决的办法也很简单，同样等所有图片loaded之后再滚动即可 -->
           <div v-for="image in message.images">
             <img :src="image.imageUrl" style="max-width: 200px;margin: 5px 0;" />
           </div>
@@ -23,11 +24,14 @@
       <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion"
         @paste="handlePaste">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
+      <!-- 其实这里addBtn的UX设计的并不好，可以参考一下gemini的设计，这样就不会在还没有上传图片的时候就占这么大的高度，把输入框搞得很不美观 -->
       <Transition>
         <button @click="fileInput.click()" v-show="imageShow" class="addBtn">+</button>
       </Transition>
       <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width:none;flex-shrink: 0;">
         <div v-for="(image, index) in images" :key="index" ref="imageContainers">
+          <!-- 这里的图片加载逻辑可以抽成组件，并且丰富一些懒加载的逻辑配置 -->
+          <!-- 然后面试的时候就可以说，用到了懒加载，并且是全自主实现，也用过一些懒加载的库，对比过，最后想深入原理，并且高度定制，所以自行实现了一版 -->
           <TransitionGroup name="wait-image">
             <div v-if="!image.isLoaded && index < 2" class="waitBlock" :key="`${index}waitBlock`">
               <div class="spinner"></div>
