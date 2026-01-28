@@ -11,7 +11,7 @@
             <p>{{ message.content }}</p>
           </div>
           <div v-for="imageUrl in message.imageUrls">
-            <img :src="imageUrl" style="max-width: 200px;margin: 5px 0;" />
+            <img :src="imageUrl" style="max-width: 200px;margin: 5px 0; border-radius: 10px;" />
           </div>
           <div class="timeTag">
             <p>{{ message.time }}</p>
@@ -20,6 +20,17 @@
       </div>
     </div>
     <div class="questionBar">
+      <div v-for="imageUrl in imageUrls"
+        style="position: relative; display: flex;max-width: 200px;min-width: 120px;overflow: scroll;scrollbar-width: none;">
+        <div class="placeHold"
+          style="height: 100px; position: relative;width:100px;margin: 0 2px; border-radius: 5px; background-color: rgb(164,125,171);">
+          <img src="/public/gif/loading.gif" alt="loading"
+            style="height: 100px; ;min-width:100px;margin: 0 auto; border-radius: 5px">
+        </div>
+        <img :src="imageUrl"
+          style=" position: absolute; top:0;left:0;  min-width:100px;height: 100px; margin: 0 2px; border-radius: 5px;transition: all 0.4s ease;"
+          ref="imageItem" />
+      </div><br>
       <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <Transition>
@@ -27,9 +38,7 @@
           <button @click="fileInput.click()" class="addBtn">+</button>
         </div>
       </Transition>
-      <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width: none;">
-        <img v-for="imageUrl in imageUrls" :src="imageUrl" style="min-width:100px;margin: 0 2px;" ref="imageItem" />
-      </div>
+
     </div>
   </div>
 </template>
@@ -39,11 +48,11 @@ import { ref, nextTick, useTemplateRef } from 'vue';
 
 const imageShow = ref(true)
 const messageContent = ref('')
-const messages = ref(['初始化1', '初始化2', '初始化3'].map((value) => {
+const messages = ref(['初始化1', '这阳光又兼大风的沐浴耗尽我的元气。我身上只剩下一丁点儿轻轻振臂的力量、低低呻吟的命脉和心灵微弱的反叛。要不了多久，我将飞向四面八方，忘掉一切也被自己遗忘。我将与风一体，融入这大风、这圆柱、这拱门、这灼热的石板以及这荒城四围苍凉的山峦。我还从未如此深切地感受到：既超脱了自我，又生存在这尘世中间。  ', '初始化3'].map((value) => {
   const date = new Date(Date.now())
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
-  return { content: value, time: `${hours}:${minutes} pm`, role: 'you' }
+  return { content: value, time: `${hours}:${minutes} ${hours < 12 ? "AM" : "PM"}`, role: 'you' }
 }))
 
 const scrollArea = ref(null);
@@ -53,13 +62,13 @@ const sendInQuestion = (param1) => {
   const date = new Date(Date.now())
   const hours = date.getHours().toString().padStart(2, '0');
   const minutes = date.getMinutes().toString().padStart(2, '0');
-  messages.value.push({ content: messageContent.value, time: `${hours}:${minutes} pm`, role: 'me', imageUrls: imageUrls.value })
+  messages.value.push({ content: messageContent.value, time: `${hours}:${minutes} ${hours < 12 ? "AM" : "PM"}`, role: 'me', imageUrls: imageUrls.value })
   if (imageUrls.value.length != 0) (
     imageShow.value = !imageShow.value
   )
   messageContent.value = ''
   imageUrls.value = []
-  messages.value.push({ content: `answer ${messages.value.length}`, time: `${hours}:${minutes} pm`, role: 'you' })
+  messages.value.push({ content: `answer ${messages.value.length}`, time: `${hours}:${minutes} ${hours < 12 ? "AM" : "PM"}`, role: 'you' })
   nextTick(() => {
     scrollArea.value.scrollTo({
       top: scrollArea.value.scrollHeight,
@@ -128,6 +137,9 @@ const handleFileChange = (e) => {
   background-color: white;
   border-radius: 10px;
   width: fit-content;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
 }
 
 .questionBar {
@@ -151,7 +163,9 @@ const handleFileChange = (e) => {
 }
 
 .timeTag {
-  font-size: 0.1em;
+  font-size: 0.6rem;
+  font-weight: 700;
+  opacity: 0.5;
 }
 
 .sendMessage {
@@ -165,6 +179,10 @@ const handleFileChange = (e) => {
 .yourStyle {
   background-color: #e9eef6;
   margin-left: 40px;
+}
+
+.yourStyle .timeTag {
+  margin-left: auto;
 }
 
 .myStyle {
@@ -204,4 +222,8 @@ const handleFileChange = (e) => {
 .addBtn:hover {
   background-color: rgb(192, 192, 192);
 }
+
+/* .placeHolderShow{
+  displ
+} */
 </style>
