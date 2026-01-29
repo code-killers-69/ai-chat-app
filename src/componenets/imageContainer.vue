@@ -1,6 +1,6 @@
 <template>
     <div :style="`--size:${size}`">
-        <TransitionGroup name="wait-image">
+        <TransitionGroup :name="`${enableLoadingAnimation ? 'wait-image' : ''}`">
             <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}waitBlock`">
                 <div class="spinner"></div>
             </div>
