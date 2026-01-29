@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div :style="`--size:${size}`">
         <TransitionGroup name="wait-image">
             <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}waitBlock`">
                 <div class="spinner"></div>
@@ -20,10 +20,15 @@ const props = defineProps({
     enableLoadingAnimation: {
         type: Boolean,
         default: false
+    },
+    size: {
+        type: String,
+        default: '80px'
     }
 })
 const imageUrl = props.imageUrl;
 const enableLoadingAnimation = props.enableLoadingAnimation;
+const size = props.size;
 const imageRef = ref(null)
 const isLoaded = ref(false)
 const emit = defineEmits(['onImageLoaded'])
@@ -36,14 +41,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-* {
-    --size: 80px;
-}
-
 .waitBlock {
     width: var(--size);
     height: var(--size);
-    margin: 0 2px;
     border: none;
     border-radius: 5px;
     display: flex;
@@ -55,7 +55,6 @@ onMounted(() => {
     min-width: var(--size);
     width: var(--size);
     height: var(--size);
-    margin: 0 2px;
     object-fit: cover;
     border: none;
     border-radius: 5px;

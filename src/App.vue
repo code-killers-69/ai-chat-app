@@ -10,10 +10,10 @@
           <div class="articleArea">
             <p>{{ message.content }}</p>
           </div>
-          <!-- 这里发送的内容有图片的情况下，原本的滚动到底部逻辑此时不会真正滚动到底部，原因是滚动逻辑开始时是所有dom挂载后，虽然此时img已经挂载了，但是还没有加载出图片内容，所以没有高度，所以图片的高度没有计算到滚动长度中，于是不能真正滚动到底部。解决的办法也很简单，同样等所有图片loaded之后再滚动即可 -->
-          <div v-for="image in message.images">
-            <img :src="image.imageUrl" style="max-width: 200px;margin: 5px 0;" />
-          </div>
+          <ImageContainer v-for="(image, index) in message.images" :key="index" :image-url="image.imageUrl"
+            @onImageLoaded="onMessageImageLoaded(message.images)" :enable-loading-animation="false" size='200px'
+            style="margin: 5px 0;">
+          </ImageContainer>
           <div class="timeTag">
             <p>{{ message.time }}</p>
           </div>
@@ -23,7 +23,7 @@
     <div class="questionBar">
       <div class="imageContainers">
         <ImageContainer v-for="(image, index) in images" :key="index" :image-url="image.imageUrl"
-          @onImageLoaded="onImageLoaded" :enable-loading-animation="true">
+          @onImageLoaded="onPreviewImageLoaded" :enable-loading-animation="true" size='80px' style="margin: 0 2px;">
         </ImageContainer>
       </div>
       <div class="inputArea">
@@ -65,24 +65,29 @@ const sendInQuestion = (param1) => {
 
   messageContent.value = ''
   images.value = []
-
-  nextTick(() => {
-    scrollArea.value.scrollTo({
-      top: scrollArea.value.scrollHeight,
-      left: 0,
-      behavior: "smooth",
-    })
-  })
 }
 
 const fileInput = ref(null);
 const images = ref([]);
-let count = 0;
+let previewImageCount = 0;
+let messageImageCount=0
 
-const onImageLoaded = () => {
-  if (++count === images.value.length) {
-    count = 0
-    console.error('all image loaded');
+const onPreviewImageLoaded = () => {
+  if (++previewImageCount === images.value.length) {
+    previewImageCount = 0
+  }
+}
+
+const onMessageImageLoaded = (images) => {
+  if (++messageImageCount === images.length) {
+    messageImageCount = 0
+    nextTick(() => {
+      scrollArea.value.scrollTo({
+        top: scrollArea.value.scrollHeight,
+        left: 0,
+        behavior: "smooth",
+      })
+    })
   }
 }
 
@@ -92,7 +97,6 @@ const handleFileChange = (e) => {
   for (const file of files) {
     images.value.push({ imageUrl: URL.createObjectURL(file), isLoaded: false })
   }
-  onImageLoaded()
 };
 
 const handlePaste = (e) => {
@@ -104,7 +108,6 @@ const handlePaste = (e) => {
       e.preventDefault();
     }
   }
-  onImageLoaded()
 }
 </script>
 
@@ -232,7 +235,6 @@ const handlePaste = (e) => {
 .inputArea {
   display: flex;
   flex-direction: row;
-  margin: 20px 0;
   justify-content: space-between;
 }
 </style>
