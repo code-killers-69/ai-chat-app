@@ -64,6 +64,7 @@ const messages = ref(['初始化1', '这阳光又兼大风的沐浴耗尽我的�
 const scrollArea = ref(null);
 
 const sendInQuestion = (param1) => {
+  if (param1.key === 'Enter') param1.preventDefault();
   if (param1.key !== 'Enter' || newInput.value.textContent === '') return;
   const date = new Date(Date.now())
   const hours = date.getHours().toString().padStart(2, '0');
@@ -73,7 +74,6 @@ const sendInQuestion = (param1) => {
     imageShow.value = 'true'
   )
 
-  // messageContent.value = ''
   newInput.value.textContent = ''
   imageUrls.value = []
   messages.value.push({ content: `answer ${messages.value.length}`, time: `${hours}:${minutes} ${hours < 12 ? "AM" : "PM"}`, role: 'you' })
@@ -109,9 +109,7 @@ const handleFileChange = (e) => {
   }
 };
 
-
 const newInput = ref(null)
-
 const pasteDetected = (e) => {
   // 再深入去mdn看一下这里的api具体是什么，还能不能优化这里的调用，这里肯定有冗余操作
   let file = null;
@@ -119,6 +117,7 @@ const pasteDetected = (e) => {
   if (items && items.length) {
     for (const item of items) {
       if (item.type.includes('image')) {
+        e.preventDefault();
         file = item.getAsFile();
         break;
       }
@@ -249,21 +248,4 @@ const pasteDetected = (e) => {
 .addBtn:hover {
   background-color: rgb(192, 192, 192);
 }
-
-[contenteditable] img {
-  height: 100px;
-  width: 100px;
-  display: block;
-  /* 避免图片下方出现空白边距 */
-}
-
-:deep(.pasteableInput img) {
-  height: 100px;
-  width: 100px;
-  display: none;
-}
-
-/* .placeHolderShow{
-  displ
-} */
 </style>
