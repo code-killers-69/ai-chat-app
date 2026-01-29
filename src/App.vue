@@ -70,7 +70,7 @@ const sendInQuestion = (param1) => {
 const fileInput = ref(null);
 const images = ref([]);
 let previewImageCount = 0;
-let messageImageCount=0
+let messageImageCount = 0
 
 const onPreviewImageLoaded = () => {
   if (++previewImageCount === images.value.length) {
@@ -95,7 +95,7 @@ const handleFileChange = (e) => {
   const files = e.target.files;
   if (files.length === 0) return;
   for (const file of files) {
-    images.value.push({ imageUrl: URL.createObjectURL(file), isLoaded: false })
+    images.value.push({ imageUrl: URL.createObjectURL(file) })
   }
 };
 
@@ -104,7 +104,7 @@ const handlePaste = (e) => {
   if (files.length === 0) return;
   for (const file of files) {
     if (file.type.startsWith('image/')) {
-      images.value.push({ imageUrl: URL.createObjectURL(file), isLoaded: false })
+      images.value.push({ imageUrl: URL.createObjectURL(file) })
       e.preventDefault();
     }
   }
