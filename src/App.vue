@@ -22,8 +22,10 @@
     <div class="questionBar">
       <div v-for="imageUrl in imageUrls"
         style="position: relative; display: flex;max-width: 200px;min-width: 120px;overflow: scroll;scrollbar-width: none;">
+        <!-- 你这里的relative作为占位图片加载完成后隐藏的解法也还可以，我是用v-if，加载完直接去掉这个节点 -->
         <div class="placeHold"
           style="height: 100px; position: relative;width:100px;margin: 0 2px; border-radius: 5px; background-color: rgb(164,125,171);">
+          <!-- public去掉 -->
           <img src="/public/gif/loading.gif" alt="loading"
             style="height: 100px; ;min-width:100px;margin: 0 auto; border-radius: 5px">
         </div>
@@ -32,10 +34,12 @@
           ref="imageItem" />
       </div>
       <!-- <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion"> -->
+      <!-- 换回input或者preventDefault -->
       <div ref="newInput" contenteditable="true" class="pasteableInput sendMessage" placeholder="请输入文本"
         @keypress="sendInQuestion" @paste="pasteDetected"></div>
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <Transition>
+        <!-- 这里testDiv都没用到，有必要还加个Div吗？直接对btn作v-if行不行 -->
         <div class="testDiv" v-if="imageShow">
           <button @click="fileInput.click()" class="addBtn">+</button>
         </div>
@@ -109,6 +113,7 @@ const handleFileChange = (e) => {
 const newInput = ref(null)
 
 const pasteDetected = (e) => {
+  // 再深入去mdn看一下这里的api具体是什么，还能不能优化这里的调用，这里肯定有冗余操作
   let file = null;
   const items = (e.clipboardData || window.Clipboard).items
   if (items && items.length) {
