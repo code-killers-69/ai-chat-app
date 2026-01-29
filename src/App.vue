@@ -30,7 +30,6 @@
         <input v-model="messageContent" type="text" class="inputMessage" placeholder="请输入文本" @keypress="sendInQuestion"
           @paste="handlePaste">
         <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
-        <!-- 其实这里addBtn的UX设计的并不好，可以参考一下gemini的设计，这样就不会在还没有上传图片的时候就占这么大的高度，把输入框搞得很不美观 -->
         <Transition>
           <button @click="fileInput.click()" class="addBtn">+</button>
         </Transition>
