@@ -4,14 +4,16 @@
             <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}-waitBlock`">
                 <div class="spinner"></div>
             </div>
-            <img :src="imageUrl" class="imageBlock" v-show="isLoaded" :key="`${imageUrl}-imageBlock`"
-                @load="onImageLoaded" />
+            <img :src="`${enableLazyLoad ? '' : imageUrl}`" class="imageBlock" v-show="isLoaded"
+                :key="`${imageUrl}-imageBlock`" @load="onImageLoaded" :lazySrc="`${enableLazyLoad ? imageUrl : ''}`"
+                ref="imageRef" />
         </TransitionGroup>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import observer from '@/composiables/observer';
+import { onMounted, ref } from 'vue';
 
 const props = defineProps({
     imageUrl: {
@@ -25,6 +27,10 @@ const props = defineProps({
     size: {
         type: String,
         default: '80px'
+    },
+    enableLazyLoad: {
+        type: Boolean,
+        default: false
     }
 })
 const imageUrl = props.imageUrl;
@@ -36,6 +42,12 @@ const onImageLoaded = () => {
     isLoaded.value = true
     emit('onImageLoaded')
 }
+
+const enableLazyLoad = props.enableLazyLoad;
+const imageRef = ref(null)
+onMounted(() => {
+    if (enableLazyLoad) observer.observe(imageRef.value)
+})
 </script>
 
 <style scoped>

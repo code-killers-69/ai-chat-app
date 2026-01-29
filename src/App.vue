@@ -23,7 +23,8 @@
     <div class="questionBar">
       <div class="imageContainers">
         <ImageContainer v-for="(image, index) in images" :key="index" :image-url="image.imageUrl"
-          @onImageLoaded="onPreviewImageLoaded" :enable-loading-animation="true" size='80px' style="margin: 0 2px;">
+          @onImageLoaded="onPreviewImageLoaded" :enable-loading-animation="true" size='80px' style="margin: 0 2px;"
+          :enable-lazy-load="true">
         </ImageContainer>
       </div>
       <div class="inputArea">
