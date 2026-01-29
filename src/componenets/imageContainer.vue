@@ -1,10 +1,10 @@
 <template>
     <div :style="`--size:${size}`">
         <TransitionGroup :name="`${enableLoadingAnimation ? 'wait-image' : ''}`">
-            <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}waitBlock`">
+            <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}-waitBlock`">
                 <div class="spinner"></div>
             </div>
-            <img :src="imageUrl" class="imageBlock" v-show="isLoaded" :key="`${imageUrl}waitBlock`"
+            <img :src="imageUrl" class="imageBlock" v-show="isLoaded" :key="`${imageUrl}-imageBlock`"
                 @load="onImageLoaded" />
         </TransitionGroup>
     </div>
