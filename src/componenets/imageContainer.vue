@@ -4,13 +4,14 @@
             <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}waitBlock`">
                 <div class="spinner"></div>
             </div>
-            <img :src="imageUrl" class="imageBlock" v-show="isLoaded" :key="`${imageUrl}waitBlock`" ref="imageRef" />
+            <img :src="imageUrl" class="imageBlock" v-show="isLoaded" :key="`${imageUrl}waitBlock`"
+                @load="onImageLoaded" />
         </TransitionGroup>
     </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps({
     imageUrl: {
@@ -29,15 +30,12 @@ const props = defineProps({
 const imageUrl = props.imageUrl;
 const enableLoadingAnimation = props.enableLoadingAnimation;
 const size = props.size;
-const imageRef = ref(null)
 const isLoaded = ref(false)
 const emit = defineEmits(['onImageLoaded'])
-onMounted(() => {
-    imageRef.value.onload = () => {
-        isLoaded.value = true
-        emit('onImageLoaded')
-    }
-})
+const onImageLoaded = () => {
+    isLoaded.value = true
+    emit('onImageLoaded')
+}
 </script>
 
 <style scoped>
