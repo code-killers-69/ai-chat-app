@@ -69,8 +69,8 @@ const onImageLoaded = () => {
 }
 
 .spinner {
-    width: 50px;
-    height: 50px;
+    width: calc(var(--size)/2);
+    height: calc(var(--size)/2);
     border: 4px solid #f3f3f3;
     border-top: 4px solid #3498db;
     border-radius: 50%;

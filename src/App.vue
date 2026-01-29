@@ -4,7 +4,7 @@
       <p>Chat Bot</p>
     </div>
     <div class="scrollArea" ref="scrollArea">
-      <div v-for="message in messages" style="display: flex;flex-direction: column;"
+      <div v-for="message in messages" class="baseAlign"
         :class="{ yourAlign: message.role === 'you', myAlign: message.role === 'me' }">
         <div class="questionTank" :class="{ yourStyle: message.role === 'you', myStyle: message.role === 'me' }">
           <div class="articleArea">
@@ -188,6 +188,11 @@ const handlePaste = (e) => {
 .myStyle {
   background-color: greenyellow;
   margin-right: 40px;
+}
+
+.baseAlign {
+  display: flex;
+  flex-direction: column;
 }
 
 .yourAlign {
