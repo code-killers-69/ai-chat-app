@@ -21,31 +21,27 @@
       </div>
     </div>
     <div class="questionBar">
-      <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion"
-        @paste="handlePaste">
-      <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
-      <!-- 其实这里addBtn的UX设计的并不好，可以参考一下gemini的设计，这样就不会在还没有上传图片的时候就占这么大的高度，把输入框搞得很不美观 -->
-      <Transition>
-        <button @click="fileInput.click()" v-show="imageShow" class="addBtn">+</button>
-      </Transition>
-      <div style="display: flex;max-width: 200px;overflow: scroll;scrollbar-width:none;flex-shrink: 0;">
-        <div v-for="(image, index) in images" :key="index" ref="imageContainers">
-          <!-- 这里的图片加载逻辑可以抽成组件，并且丰富一些懒加载的逻辑配置 -->
-          <!-- 然后面试的时候就可以说，用到了懒加载，并且是全自主实现，也用过一些懒加载的库，对比过，最后想深入原理，并且高度定制，所以自行实现了一版 -->
-          <TransitionGroup name="wait-image">
-            <div v-if="!image.isLoaded && index < 2" class="waitBlock" :key="`${index}waitBlock`">
-              <div class="spinner"></div>
-            </div>
-            <img :src="image.imageUrl" class="imageBlock" v-show="image.isLoaded" :key="`${index}waitBlock`" />
-          </TransitionGroup>
-        </div>
+      <div class="imageContainers">
+        <ImageContainer v-for="(image, index) in images" :key="index" :image-url="image.imageUrl"
+          @onImageLoaded="onImageLoaded" :enable-loading-animation="true">
+        </ImageContainer>
+      </div>
+      <div class="inputArea">
+        <input v-model="messageContent" type="text" class="inputMessage" placeholder="请输入文本" @keypress="sendInQuestion"
+          @paste="handlePaste">
+        <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
+        <!-- 其实这里addBtn的UX设计的并不好，可以参考一下gemini的设计，这样就不会在还没有上传图片的时候就占这么大的高度，把输入框搞得很不美观 -->
+        <Transition>
+          <button @click="fileInput.click()" class="addBtn">+</button>
+        </Transition>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, useTemplateRef } from 'vue';
+import { ref, nextTick } from 'vue';
+import ImageContainer from './componenets/imageContainer.vue';
 
 const getNow = () => {
   const date = new Date(Date.now())
@@ -54,7 +50,6 @@ const getNow = () => {
   return { hours, minutes }
 }
 
-const imageShow = ref(true)
 const messageContent = ref('')
 const messages = ref(['初始化1', '初始化2', '初始化3'].map((value) => {
   const now = getNow();
@@ -64,14 +59,14 @@ const messages = ref(['初始化1', '初始化2', '初始化3'].map((value) => {
 const scrollArea = ref(null);
 const sendInQuestion = (param1) => {
   if (param1.key !== 'Enter' || (messageContent.value === '' && images.value.length === 0)) return;
+
   const now = getNow();
   messages.value.push({ content: messageContent.value, time: `${now.hours}:${now.minutes} pm`, role: 'me', images: images.value })
-  if (images.value.length != 0) (
-    imageShow.value = !imageShow.value
-  )
+  messages.value.push({ content: `answer ${messages.value.length}`, time: `${now.hours}:${now.minutes} pm`, role: 'you' })
+
   messageContent.value = ''
   images.value = []
-  messages.value.push({ content: `answer ${messages.value.length}`, time: `${now.hours}:${now.minutes} pm`, role: 'you' })
+
   nextTick(() => {
     scrollArea.value.scrollTo({
       top: scrollArea.value.scrollHeight,
@@ -81,9 +76,16 @@ const sendInQuestion = (param1) => {
   })
 }
 
-const imageContainerRefs = useTemplateRef("imageContainers")
 const fileInput = ref(null);
 const images = ref([]);
+let count = 0;
+
+const onImageLoaded = () => {
+  if (++count === images.value.length) {
+    count = 0
+    console.error('all image loaded');
+  }
+}
 
 const handleFileChange = (e) => {
   const files = e.target.files;
@@ -91,23 +93,8 @@ const handleFileChange = (e) => {
   for (const file of files) {
     images.value.push({ imageUrl: URL.createObjectURL(file), isLoaded: false })
   }
-  handleWaitImagesLoad()
+  onImageLoaded()
 };
-
-const handleWaitImagesLoad = () => {
-  nextTick(() => {
-    let count = 0;
-    for (const [index, imageContainerRef] of Object.entries(imageContainerRefs.value)) {
-      const imageRef = imageContainerRef.querySelector('img')
-      imageRef.onload = () => {
-        images.value[index].isLoaded = true;
-        if (++count === imageContainerRefs.value.length) {
-          imageShow.value = !imageShow.value
-        }
-      }
-    }
-  })
-}
 
 const handlePaste = (e) => {
   const files = e.clipboardData.files;
@@ -118,7 +105,7 @@ const handlePaste = (e) => {
       e.preventDefault();
     }
   }
-  handleWaitImagesLoad()
+  onImageLoaded()
 }
 </script>
 
@@ -161,6 +148,7 @@ const handlePaste = (e) => {
 
 .questionBar {
   display: flex;
+  flex-direction: column;
   /* flex-direction: column; */
   margin: 0 auto;
   width: 80%;
@@ -183,11 +171,10 @@ const handlePaste = (e) => {
   font-size: 0.1em;
 }
 
-.sendMessage {
+.inputMessage {
   width: 100%;
   outline: none;
   border: none;
-  border-radius: 10px;
   background-color: whitesmoke;
 }
 
@@ -209,46 +196,6 @@ const handlePaste = (e) => {
   align-items: flex-end;
 }
 
-.imageBlock {
-  min-width: 100px;
-  width: 100px;
-  height: 100px;
-  margin: 0 2px;
-  object-fit: cover;
-  border: none;
-  border-radius: 5px;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.waitBlock {
-  width: 100px;
-  height: 100px;
-  margin: 0 2px;
-  border: none;
-  border-radius: 5px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
 .v-enter-active {
   transition: opacity 1s ease;
 }
@@ -257,28 +204,14 @@ const handlePaste = (e) => {
   transition: opacity 0.5s ease;
 }
 
-.wait-image-enter-active {
-  transition: opacity 1s ease;
-}
-
-.wait-image-leave-active {
-  transition: opacity 0.5s ease;
-  position: absolute;
-}
-
-.wait-image-enter-from,
-.wait-image-leave-to {
-  opacity: 0;
-}
-
 .v-enter-from,
 .v-leave-to {
   opacity: 0;
 }
 
 .addBtn {
-  height: 100px;
-  width: 100px;
+  height: 20px;
+  width: 20px;
   flex-shrink: 0;
   background-color: rgb(223, 223, 223);
   border: none;
@@ -288,5 +221,19 @@ const handlePaste = (e) => {
 
 .addBtn:hover {
   background-color: rgb(192, 192, 192);
+}
+
+.imageContainers {
+  display: flex;
+  width: 100%;
+  overflow: scroll;
+  scrollbar-width: none;
+}
+
+.inputArea {
+  display: flex;
+  flex-direction: row;
+  margin: 20px 0;
+  justify-content: space-between;
 }
 </style>
