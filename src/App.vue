@@ -100,17 +100,12 @@ const handleFileChange = (e) => {
   }
 };
 
-// 再深入去mdn看一下这里的api具体是什么，还能不能优化这里的调用，这里肯定有冗余操作
 const pasteDetected = (e) => {
-  let file = null;
-  const items = e.clipboardData.items
-  if (items && items.length) {
-    for (const item of items) {
-      if (item.type.includes('image')) {
-        file = item.getAsFile();
-        imageUrls.value.push(URL.createObjectURL(file))
-        break;
-      }
+  e.preventDefault();
+  console.log();
+  for (const file of e.clipboardData.files) {
+    if (e.clipboardData.files.length && file.type.includes('image')) {
+      imageUrls.value.push(URL.createObjectURL(file))
     }
   }
 }
