@@ -1,12 +1,12 @@
 <template>
-    <div :style="`--size:${size}`">
+    <div :style="`--size:${size}`" ref="imageContainer">
         <TransitionGroup :name="`${enableLoadingAnimation ? 'wait-image' : ''}`">
-            <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}-waitBlock`">
+            <div class="waitBlock" :class="{ hidden: enableLazyLoad }" v-if="!isLoaded && enableLoadingAnimation"
+                :key="`${imageUrl}-waitBlock`">
                 <div class="spinner"></div>
             </div>
             <img :src="`${enableLazyLoad ? '' : imageUrl}`" class="imageBlock" v-show="isLoaded"
-                :key="`${imageUrl}-imageBlock`" @load="onImageLoaded" :lazySrc="`${enableLazyLoad ? imageUrl : ''}`"
-                ref="imageRef" />
+                :key="`${imageUrl}-imageBlock`" @load="onImageLoaded" :lazySrc="`${enableLazyLoad ? imageUrl : ''}`" />
         </TransitionGroup>
     </div>
 </template>
@@ -44,9 +44,9 @@ const onImageLoaded = () => {
 }
 
 const enableLazyLoad = props.enableLazyLoad;
-const imageRef = ref(null)
+const imageContainer = ref(null)
 onMounted(() => {
-    if (enableLazyLoad) observer.observe(imageRef.value)
+    if (enableLazyLoad) observer.observe(imageContainer.value)
 })
 </script>
 
@@ -101,5 +101,9 @@ onMounted(() => {
 .wait-image-enter-from,
 .wait-image-leave-to {
     opacity: 0;
+}
+
+.hidden {
+    display: none;
 }
 </style>
