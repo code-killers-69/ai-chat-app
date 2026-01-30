@@ -36,7 +36,7 @@
         @paste="pasteDetected">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <Transition>
-        <button v-if="imageShow" @click="fileInput.click()" class="addBtn">+</button>
+        <button v-show="imageShow" @click="fileInput.click()" class="addBtn">+</button>
       </Transition>
     </div>
   </div>
