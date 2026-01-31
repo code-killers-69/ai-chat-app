@@ -10,9 +10,11 @@
           <div class="articleArea">
             <p>{{ message.content }}</p>
           </div>
-          <div v-for="imageUrl in message.imageUrls">
+5          <ImageContainer v-for="imageUrl in message.imageUrls" :image-url="imageUrl" :enable-loading-gif="false">
+          </ImageContainer>
+          <!-- <div v-for="imageUrl in message.imageUrls">
             <img :src="imageUrl" style="max-width: 200px;margin: 5px 0; border-radius: 10px;" />
-          </div>
+          </div> -->
           <div class="timeTag">
             <p>{{ message.time }}</p>
           </div>
@@ -20,18 +22,19 @@
       </div>
     </div>
     <div class="questionBar">
-      <div v-for="imageUrl in imageUrls"
+      <ImageContainer v-for="imageUrl in imageUrls" :image-url="imageUrl" :enable-loading-gif="true"></ImageContainer>
+    
+      <!-- <div v-for="imageUrl in imageUrls"
         style="position: relative; display: flex;max-width: 200px;min-width: 120px;overflow: scroll;scrollbar-width: none;">
         <div class="placeHold"
           style="height: 100px; position: relative;width:100px;margin: 0 2px; border-radius: 5px; background-color: rgb(164,125,171);">
-          <!-- public去掉 -->
           <img src="/gif/loading.gif" alt="loading"
             style="height: 100px;min-width:100px;margin: 0 auto; border-radius: 5px">
         </div>
         <img :src="imageUrl"
-          style=" position: absolute; top:0;left:0;  min-width:100px;height: 100px; margin: 0 2px; border-radius: 5px;transition: all 0.4s ease;"
+          style=" position: absolute; top:0;left:0;  min-width:100px;height: 100px; margin: 0 2px; border-radius: 5px;transition: all 0.4s ease;object-fit: cover; "
           ref="imageItem" />
-      </div>
+      </div> -->
       <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion"
         @paste="pasteDetected">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
@@ -44,7 +47,8 @@
 
 <script setup>
 import { ref, nextTick, useTemplateRef } from 'vue';
-
+import ImageContainer from './componenets/imageContainer.vue'
+// import ImageContainer from './componenets/imageContainer.vue';
 const imageShow = ref(true)
 const messageContent = ref('')
 const messages = ref(['初始化1', '这阳光又兼大风的沐浴耗尽我的元气。我身上只剩下一丁点儿轻轻振臂的力量、低低呻吟的命脉和心灵微弱的反叛。要不了多久，我将飞向四面八方，忘掉一切也被自己遗忘。我将与风一体，融入这大风、这圆柱、这拱门、这灼热的石板以及这荒城四围苍凉的山峦。我还从未如此深切地感受到：既超脱了自我，又生存在这尘世中间。  ', '初始化3'].map((value) => {
@@ -77,7 +81,6 @@ const sendInQuestion = (param1) => {
   })
 }
 
-const imageRefs = useTemplateRef("imageItem")
 const fileInput = ref(null);
 const imageUrls = ref([]);
 
@@ -87,16 +90,6 @@ const handleFileChange = (e) => {
     for (const file of files) {
       imageUrls.value.push(URL.createObjectURL(file))
     }
-    nextTick(() => {
-      let count = 0;
-      for (const imageRef of imageRefs.value) {
-        imageRef.onload = () => {
-          if (++count === imageRefs.value.length) {
-            imageShow.value = !imageShow.value
-          }
-        }
-      }
-    })
   }
 };
 

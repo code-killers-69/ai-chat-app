@@ -1,7 +1,7 @@
 <template>
   <h1><span v-for="item in arr">{{ item.value.toString().padStart(2, '0') }}:</span>{{ showMs.toString().padStart(3,
     '0')
-  }}<br>
+    }}<br>
     <button @click="pauseTime">{{ stateTime ? "PLAY" : "PAUSE" }}</button>
     <button @click="resetTime">RESET</button>
   </h1>
