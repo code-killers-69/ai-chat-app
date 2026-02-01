@@ -9,8 +9,6 @@
 </template>
 
 <script setup>
-// import { ref } from 'vue';
-
 const props = defineProps({
 
     imageUrl: {
@@ -26,8 +24,6 @@ const props = defineProps({
         type: Boolean,
         default: false
     }
-
-
 })
 
 
