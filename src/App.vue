@@ -10,11 +10,9 @@
           <div class="articleArea">
             <p>{{ message.content }}</p>
           </div>
-          <ImageContainer v-for="imageUrl in message.imageUrls" :image-url="imageUrl" :enable-loading-gif="false">
+          <ImageContainer v-for="(imageUrl, index) in message.imageUrls" :image-url="imageUrl"
+            :enable-loading-gif="false" ref="observeTarget">
           </ImageContainer>
-          <!-- <div v-for="imageUrl in message.imageUrls">
-            <img :src="imageUrl" style="max-width: 200px;margin: 5px 0; border-radius: 10px;" />
-          </div> -->
           <div class="timeTag">
             <p>{{ message.time }}</p>
           </div>
@@ -23,19 +21,8 @@
     </div>
     <div class="questionBar">
 
-      <ImageContainer v-for="imageUrl in imageUrls" :image-url="imageUrl" :enable-loading-gif="true"></ImageContainer>
-
-      <!-- <div v-for="imageUrl in imageUrls"
-        style="position: relative; display: flex;max-width: 200px;min-width: 120px;overflow: scroll;scrollbar-width: none;">
-        <div class="placeHold"
-          style="height: 100px; position: relative;width:100px;margin: 0 2px; border-radius: 5px; background-color: rgb(164,125,171);">
-          <img src="/gif/loading.gif" alt="loading"
-            style="height: 100px;min-width:100px;margin: 0 auto; border-radius: 5px">
-        </div>
-        <img :src="imageUrl"
-          style=" position: absolute; top:0;left:0;  min-width:100px;height: 100px; margin: 0 2px; border-radius: 5px;transition: all 0.4s ease;object-fit: cover; "
-          ref="imageItem" />
-      </div> -->
+      <ImageContainer v-for="imageUrl in imageUrls" :image-url="imageUrl" :enable-loading-gif="true">
+      </ImageContainer>
       <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion"
         @paste="pasteDetected">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
@@ -47,12 +34,13 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, useTemplateRef, onMounted, watch } from 'vue';
 import ImageContainer from './componenets/imageContainer.vue'
 import { getDate } from './utils/getTimeNow';
 
 const messageContent = ref('')
 const scrollArea = ref(null);
+
 
 const messages = ref(['初始化1', '这阳光又兼大风的沐浴耗尽我的元气。我身上只剩下一丁点儿轻轻振臂的力量、低低呻吟的命脉和心灵微弱的反叛。要不了多久，我将飞向四面八方，忘掉一切也被自己遗忘。我将与风一体，融入这大风、这圆柱、这拱门、这灼热的石板以及这荒城四围苍凉的山峦。我还从未如此深切地感受到：既超脱了自我，又生存在这尘世中间。  ', '初始化3'].map((value) => {
   const timeNow = getDate()
@@ -74,6 +62,7 @@ const sendInQuestion = (param1) => {
       behavior: "smooth",
     })
   })
+
 }
 
 const fileInput = ref(null);
@@ -89,6 +78,7 @@ const handleFileChange = (e) => {
 };
 
 const pasteDetected = (e) => {
+
   e.preventDefault();
   console.log();
   for (const file of e.clipboardData.files) {
@@ -97,6 +87,45 @@ const pasteDetected = (e) => {
     }
   }
 }
+
+const imageTarget = useTemplateRef('observeTarget')
+
+const option = {
+  root: scrollArea.value,
+  threshold: 0.25,
+}
+
+const callBack = (entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.revealSelf()
+      observer.unobserve(entry.target)
+    }
+  });
+}
+
+let observer = new IntersectionObserver(callBack, option);
+
+watch(() => messages.value, async (newValue) => {
+
+  await nextTick()
+  if (!imageTarget.value) return
+  imageTarget.value.forEach(instance => {
+    const target = instance.$el;      //真正的实例管理的 DOM节点！操作dom节点来操作其组件
+    if (target && !target.isObserved) {
+      target.revealSelf = () => {
+        instance.nowSeeMe()
+      }
+      observer.observe(target)
+      target.isObserved = 'true'
+    }
+  });
+
+}
+  , { deep: true, immediate: true })
+
+
+
 </script>
 
 <style scoped>

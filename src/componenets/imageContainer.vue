@@ -3,14 +3,16 @@
         <div class="loadingAnimation" v-if="enableLoadingGif">
             <img src="/gif/loading.gif" alt="loading">
         </div>
-        <img :class="{ noLoading: !enableLoadingGif, haveLoading: enableLoadingGif }" :src="imageUrl">
+        <img :class="{ noLoading: !enableLoadingGif, haveLoading: enableLoadingGif }"
+            :src="(seeMeNow || enableLoadingGif) ? imageUrl : '/gif/loading.gif'">
     </div>
 
 </template>
 
 <script setup>
-const props = defineProps({
+import { ref } from 'vue'
 
+const props = defineProps({
     imageUrl: {
         type: String,
         required: true
@@ -23,13 +25,19 @@ const props = defineProps({
     enableLoadingGif: {
         type: Boolean,
         default: false
-    }
+    },
 })
 
+const seeMeNow = ref(false)
+const nowSeeMe = () => {
+    seeMeNow.value = true
+}
+
+defineExpose({ nowSeeMe })
 
 </script>
 
-<style scoped >
+<style scoped>
 .haveLoadingAnimation {
     position: relative;
     display: flex;
