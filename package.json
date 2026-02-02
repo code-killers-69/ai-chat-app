@@ -1,20 +1,14 @@
 {
-  "name": "test",
-  "version": "0.0.0",
+  "name": "chat-app-monorepo",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "vue": "^3.5.26"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.3",
-    "vite": "^7.3.1",
-    "vite-plugin-vue-devtools": "^8.0.5"
+    "dev": "pnpm -r --parallel run dev",
+    "dev:frontend": "pnpm --filter @chat-app/frontend dev",
+    "dev:backend": "pnpm --filter @chat-app/backend dev",
+    "build": "pnpm -r run build",
+    "start": "pnpm --filter @chat-app/backend start"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
