@@ -10,7 +10,7 @@
           <div class="articleArea">
             <p>{{ message.content }}</p>
           </div>
-          <ImageContainer v-for="(image, index) in message.images" :key="index" :image-url="image.imageUrl"
+          <ImageContainer v-for="(image, index) in message.images" :key="image.imageUrl" :image-url="image.imageUrl"
             @onImageLoaded="onMessageImageLoaded(message.images)" :enable-loading-animation="false" size='200px'
             style="margin: 5px 0;">
           </ImageContainer>
