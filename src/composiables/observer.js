@@ -3,8 +3,8 @@ const observer = new IntersectionObserver(
     for (const entry of entries) {
       if (!entry.isIntersecting) return;
       const container = entry.target;
-      const imageElement = container.querySelector('img');
-      const loadingElement = container.querySelector('div');
+      const imageElement = container.querySelector('img.imageBlock');
+      const loadingElement = container.querySelector('div.waitBlock');
       loadingElement.classList.remove('hidden');
       const lazySrc = imageElement.getAttribute('lazySrc');
       imageElement.setAttribute('src', lazySrc);

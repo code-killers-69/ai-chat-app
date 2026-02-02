@@ -22,9 +22,9 @@
     </div>
     <div class="questionBar">
       <div class="imageContainers">
-        <ImageContainer v-for="(image, index) in images" :key="index" :image-url="image.imageUrl"
+        <ImageContainer v-for="(image, index) in images" :key="image.imageUrl" :image-url="image.imageUrl"
           @onImageLoaded="onPreviewImageLoaded" :enable-loading-animation="true" size='80px' style="margin: 0 2px;"
-          :enable-lazy-load="true">
+          :enable-lazy-load="true" :enable-delete-btn="true" @on-image-deleted="onImageDeleted(index)">
         </ImageContainer>
       </div>
       <div class="inputArea">
@@ -114,6 +114,10 @@ const handlePaste = (e) => {
       e.preventDefault();
     }
   }
+}
+
+const onImageDeleted = (index) => {
+  images.value.splice(index, 1)
 }
 </script>
 
