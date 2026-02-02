@@ -66,6 +66,7 @@ const sendInQuestion = (param1) => {
 
   messageContent.value = ''
   images.value = []
+  if (images.value.length === 0) scrollToNewMessage()
 }
 
 const fileInput = ref(null);
@@ -79,16 +80,20 @@ const onPreviewImageLoaded = () => {
   }
 }
 
+const scrollToNewMessage = () => {
+  nextTick(() => {
+    scrollArea.value.scrollTo({
+      top: scrollArea.value.scrollHeight,
+      left: 0,
+      behavior: "smooth",
+    })
+  })
+}
+
 const onMessageImageLoaded = (images) => {
   if (++messageImageCount === images.length) {
     messageImageCount = 0
-    nextTick(() => {
-      scrollArea.value.scrollTo({
-        top: scrollArea.value.scrollHeight,
-        left: 0,
-        behavior: "smooth",
-      })
-    })
+    scrollToNewMessage()
   }
 }
 
