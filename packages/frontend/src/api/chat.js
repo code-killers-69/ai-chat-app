@@ -1,53 +1,152 @@
 const API_BASE = '/api';
 
 /**
+ * 用户认证 API
+ */
+class AuthAPI {
+  constructor() {
+    this.token = localStorage.getItem('chat_token');
+    this.user = JSON.parse(localStorage.getItem('chat_user') || 'null');
+  }
+
+  getHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    return headers;
+  }
+
+  async register(username, password, nickname) {
+    const res = await fetch(`${API_BASE}/user/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, nickname })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  }
+
+  async login(username, password) {
+    const res = await fetch(`${API_BASE}/user/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    
+    this.token = data.data.token;
+    this.user = data.data.user;
+    localStorage.setItem('chat_token', this.token);
+    localStorage.setItem('chat_user', JSON.stringify(this.user));
+    
+    return data.data;
+  }
+
+  logout() {
+    this.token = null;
+    this.user = null;
+    localStorage.removeItem('chat_token');
+    localStorage.removeItem('chat_user');
+  }
+
+  isLoggedIn() {
+    return !!this.token;
+  }
+
+  getUser() {
+    return this.user;
+  }
+}
+
+/**
+ * 会话 API
+ */
+class ConversationAPI {
+  constructor(authAPI) {
+    this.auth = authAPI;
+  }
+
+  async getConversations() {
+    const res = await fetch(`${API_BASE}/conversations`, {
+      headers: this.auth.getHeaders()
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  }
+
+  async getConversation(id) {
+    const res = await fetch(`${API_BASE}/conversations/${id}`, {
+      headers: this.auth.getHeaders()
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  }
+
+  async createConversation(title) {
+    const res = await fetch(`${API_BASE}/conversations`, {
+      method: 'POST',
+      headers: this.auth.getHeaders(),
+      body: JSON.stringify({ title })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  }
+
+  async deleteConversation(id) {
+    const res = await fetch(`${API_BASE}/conversations/${id}`, {
+      method: 'DELETE',
+      headers: this.auth.getHeaders()
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+  }
+
+  async updateTitle(id, title) {
+    const res = await fetch(`${API_BASE}/conversations/${id}`, {
+      method: 'PUT',
+      headers: this.auth.getHeaders(),
+      body: JSON.stringify({ title })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+  }
+}
+
+/**
  * 聊天 API 服务
- * 设计为可扩展，支持未来群聊场景
  */
 class ChatAPI {
   constructor() {
-    this.conversationId = this.generateConversationId();
-    this.userId = this.generateUserId();
-  }
-
-  generateConversationId() {
-    return `conv_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-  }
-
-  generateUserId() {
-    let userId = localStorage.getItem('chat_user_id');
-    if (!userId) {
-      userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      localStorage.setItem('chat_user_id', userId);
-    }
-    return userId;
+    this.auth = new AuthAPI();
+    this.conversations = new ConversationAPI(this.auth);
+    this.conversationId = null;
   }
 
   /**
    * 将图片 URL 转换为 base64
    */
   async imageUrlToBase64(url) {
-    // 如果是 blob URL
     if (url.startsWith('blob:')) {
       const response = await fetch(url);
       const blob = await response.blob();
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          // 返回完整的 data URL
-          resolve(reader.result);
-        };
+        reader.onloadend = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
     }
     
-    // 如果已经是 base64
     if (url.startsWith('data:')) {
       return url;
     }
 
-    // 普通 URL
     const response = await fetch(url);
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
@@ -60,30 +159,20 @@ class ChatAPI {
 
   /**
    * 流式发送消息
-   * @param {Object} options
-   * @param {string} options.message - 消息内容
-   * @param {Array} options.images - 图片 URL 数组
-   * @param {Function} options.onChunk - 流式数据回调
-   * @param {Function} options.onComplete - 完成回调
-   * @param {Function} options.onError - 错误回调
    */
-  async streamMessage({ message, images = [], onChunk, onComplete, onError }) {
+  async streamMessage({ message, images = [], onChunk, onComplete, onError, onConversationCreated }) {
     try {
-      // 转换图片为 base64
       const base64Images = await Promise.all(
         images.map(img => this.imageUrlToBase64(img.imageUrl))
       );
 
       const response = await fetch(`${API_BASE}/chat/stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.auth.getHeaders(),
         body: JSON.stringify({
           message,
           images: base64Images,
           conversationId: this.conversationId,
-          userId: this.userId,
         }),
       });
 
@@ -107,7 +196,10 @@ class ChatAPI {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.type === 'chunk') {
+              if (data.type === 'conversation') {
+                this.conversationId = data.conversationId;
+                onConversationCreated?.(data.conversationId);
+              } else if (data.type === 'chunk') {
                 onChunk?.(data.content);
               } else if (data.type === 'done') {
                 onComplete?.(data.content);
@@ -130,22 +222,31 @@ class ChatAPI {
    * 清除会话历史
    */
   async clearHistory() {
-    try {
-      await fetch(`${API_BASE}/chat/history/${this.conversationId}`, {
-        method: 'DELETE',
-      });
-      // 生成新的会话 ID
-      this.conversationId = this.generateConversationId();
-    } catch (error) {
-      console.error('Clear history error:', error);
+    if (this.conversationId) {
+      try {
+        await fetch(`${API_BASE}/chat/history/${this.conversationId}`, {
+          method: 'DELETE',
+          headers: this.auth.getHeaders(),
+        });
+      } catch (error) {
+        console.error('Clear history error:', error);
+      }
     }
+    this.conversationId = null;
+  }
+
+  /**
+   * 设置当前会话
+   */
+  setConversation(id) {
+    this.conversationId = id;
   }
 
   /**
    * 开启新会话
    */
   startNewConversation() {
-    this.conversationId = this.generateConversationId();
+    this.conversationId = null;
   }
 }
 
