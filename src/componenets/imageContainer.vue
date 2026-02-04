@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const props = defineProps({
     imageUrl: {
@@ -37,6 +37,12 @@ const nowSeeMe = () => {
 onMounted(() => {
     if (rootEl.value) {
         rootEl.value.revealSelf = nowSeeMe
+    }
+});
+
+onUnmounted(()=>{
+    if(rootEl.value){
+        rootEl.value.revealSelf = null;
     }
 })
 defineExpose({ nowSeeMe })
