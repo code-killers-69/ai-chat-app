@@ -1,33 +1,33 @@
 <template>
   <div class="container">
-    <div class="headBar">
+    <div class="head-bar">
       <p>Chat Bot</p>
     </div>
-    <div class="scrollArea" ref="scrollArea">
+    <div class="scroll-area" ref="scrollArea">
       <div v-for="message in messages" style="display: flex;flex-direction: column;"
         :class="{ yourAlign: message.role === 'you', myAlign: message.role === 'me' }">
-        <div class="questionTank" :class="{ yourStyle: message.role === 'you', myStyle: message.role === 'me' }">
-          <div class="articleArea">
+        <div class="message-bubble" :class="{ yourStyle: message.role === 'you', myStyle: message.role === 'me' }">
+          <div class="article-area">
             <p>{{ message.content }}</p>
           </div>
-          <ImageContainer v-for="(imageUrl, index) in message.imageUrls" :image-url="imageUrl"
-            :enable-loading-gif="false" ref="observeTarget">
+          <ImageContainer v-for="imageUrl in message.imageUrls" :image-url="imageUrl" :enable-loading-gif="false"
+            ref="observeTarget">
           </ImageContainer>
-          <div class="timeTag">
+          <div class="time-tag">
             <p>{{ message.time }}</p>
           </div>
         </div>
       </div>
     </div>
-    <div class="questionBar">
+    <div class="text-area">
 
       <ImageContainer v-for="imageUrl in imageUrls" :image-url="imageUrl" :enable-loading-gif="true">
       </ImageContainer>
-      <input v-model="messageContent" type="text" class="sendMessage" placeholder="请输入文本" @keypress="sendInQuestion"
-        @paste="pasteDetected">
+      <input v-model="messageContent" type="text" class="message-input" placeholder="请输入文本" @keypress="sendMessageIn"
+        @paste="handlePaste">
       <input type="file" ref="fileInput" multiple accept="image/*" style="display: none;" @change="handleFileChange">
       <Transition>
-        <button @click="fileInput.click()" class="addBtn">+</button>
+        <button @click="fileInput.click()" class="add-btn">+</button>
       </Transition>
     </div>
   </div>
@@ -36,30 +36,29 @@
 <script setup>
 import { ref, nextTick, useTemplateRef, onMounted, watch } from 'vue';
 import ImageContainer from './componenets/imageContainer.vue'
-import { getDate } from './utils/getTimeNow';
+import { getDate } from './utils/getCurrentTimestamp';
 
 const messageContent = ref('')
 const scrollArea = ref(null);
 
-
 const messages = ref(['初始化1', '这阳光又兼大风的沐浴耗尽我的元气。我身上只剩下一丁点儿轻轻振臂的力量、低低呻吟的命脉和心灵微弱的反叛。要不了多久，我将飞向四面八方，忘掉一切也被自己遗忘。我将与风一体，融入这大风、这圆柱、这拱门、这灼热的石板以及这荒城四围苍凉的山峦。我还从未如此深切地感受到：既超脱了自我，又生存在这尘世中间。  ', '初始化3'].map((value) => {
-  const timeNow = getDate()
-  return { content: value, time: timeNow, role: 'you' }
+  const currentTimestamp = getDate()
+  return { content: value, time: currentTimestamp, role: 'you' }
 }))
 
 
-const sendInQuestion = (param1) => {
-  if (param1.key !== 'Enter' || messageContent.value === '') return;
-  const timeNow = getDate()
-  messages.value.push({ content: messageContent.value, time: timeNow, role: 'me', imageUrls: imageUrls.value })
+const sendMessageIn = (event) => {
+  if (event.key !== 'Enter' || messageContent.value === '') return;
+  const currentTimestamp = getDate()
+  messages.value.push({ content: messageContent.value, time: currentTimestamp, role: 'me', imageUrls: imageUrls.value })
   messageContent.value = ''
   imageUrls.value = []
-  messages.value.push({ content: `answer ${messages.value.length}`, time: timeNow, role: 'you' })
+  messages.value.push({ content: `answer ${messages.value.length}`, time: currentTimestamp, role: 'you' })
   nextTick(() => {
     scrollArea.value.scrollTo({
       top: scrollArea.value.scrollHeight,
       left: 0,
-      behavior: "smooth",
+      behavior: 'smooth',
     })
   })
 
@@ -77,7 +76,7 @@ const handleFileChange = (e) => {
   }
 };
 
-const pasteDetected = (e) => {
+const handlePaste = (e) => {
 
   e.preventDefault();
   console.log();
@@ -98,7 +97,7 @@ const option = {
 const callBack = (entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
-      entry.target.revealSelf()
+      entry.target.revealSelf() // 对dom根结点操作  element
       observer.unobserve(entry.target)
     }
   });
@@ -106,23 +105,23 @@ const callBack = (entries) => {
 
 let observer = new IntersectionObserver(callBack, option);
 
-watch(() => messages.value, async (newValue) => {
+//监听消息，监测到图片组件就准备安装监视器（）
+watch(messages.value, async () => {
 
-  await nextTick()
-  if (!imageTarget.value) return
+  await nextTick();
+
+  if (!imageTarget.value) return;
   imageTarget.value.forEach(instance => {
     const target = instance.$el;      //真正的实例管理的 DOM节点！操作dom节点来操作其组件
-    if (target && !target.isObserved) {
+    if (target && !target.dataset.isObserved) {
       target.revealSelf = () => {
         instance.nowSeeMe()
       }
       observer.observe(target)
-      target.isObserved = 'true'
+      target.dataset.isObserved = 'true'  //中途定义属性 打上标签避免循环检测，是不是能优化到更外围？
     }
   });
-
-}
-  , { deep: true, immediate: true })
+}, { deep: true, immediate: true })
 
 
 
@@ -147,7 +146,7 @@ watch(() => messages.value, async (newValue) => {
   overflow: hidden;
 }
 
-.headBar {
+.head-bar {
   width: 100%;
   height: 60px;
   margin: 0 auto;
@@ -157,7 +156,7 @@ watch(() => messages.value, async (newValue) => {
   font-weight: bold;
 }
 
-.questionTank {
+.message-bubble {
   padding: 10px;
   margin-bottom: 20px;
   background-color: white;
@@ -168,7 +167,7 @@ watch(() => messages.value, async (newValue) => {
   flex-direction: column;
 }
 
-.questionBar {
+.text-area {
   display: flex;
   /* flex-direction: column; */
   margin: 0 auto;
@@ -179,22 +178,22 @@ watch(() => messages.value, async (newValue) => {
   flex-shrink: 0;
 }
 
-.scrollArea {
+.scroll-area {
   flex: 1;
   overflow-y: auto;
 }
 
-.articleArea {
+.article-area {
   margin-bottom: 5px;
 }
 
-.timeTag {
+.time-tag {
   font-size: 0.6rem;
   font-weight: 700;
   opacity: 0.5;
 }
 
-.sendMessage {
+.message-input {
   width: 100%;
   outline: none;
   border: none;
@@ -207,7 +206,7 @@ watch(() => messages.value, async (newValue) => {
   margin-left: 40px;
 }
 
-.yourStyle .timeTag {
+.yourStyle .time-tag {
   margin-left: auto;
 }
 
@@ -235,7 +234,7 @@ watch(() => messages.value, async (newValue) => {
   opacity: 0;
 }
 
-.addBtn {
+.add-btn {
   height: 20px;
   width: 20px;
   background-color: rgb(223, 223, 223);
@@ -245,7 +244,7 @@ watch(() => messages.value, async (newValue) => {
   font-weight: 700;
 }
 
-.addBtn:hover {
+.add-btn:hover {
   background-color: rgb(192, 192, 192);
 }
 </style>
