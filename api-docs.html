@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App API 接口文档</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; text-align: center; margin-bottom: 30px; border-radius: 12px; }
+    header h1 { font-size: 2.5em; margin-bottom: 10px; }
+    header p { opacity: 0.9; font-size: 1.1em; }
+    .base-url { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px 20px; margin-bottom: 30px; }
+    .base-url code { background: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #d63384; }
+    .section { background: white; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+    .section-header { background: #f8f9fa; padding: 20px; border-bottom: 1px solid #eee; }
+    .section-header h2 { color: #495057; display: flex; align-items: center; gap: 10px; }
+    .section-header h2::before { content: ''; width: 4px; height: 24px; background: #667eea; border-radius: 2px; }
+    .api-item { border-bottom: 1px solid #eee; padding: 25px; }
+    .api-item:last-child { border-bottom: none; }
+    .api-title { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; }
+    .method { padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85em; min-width: 70px; text-align: center; }
+    .method.get { background: #d4edda; color: #155724; }
+    .method.post { background: #cce5ff; color: #004085; }
+    .method.put { background: #fff3cd; color: #856404; }
+    .method.delete { background: #f8d7da; color: #721c24; }
+    .endpoint { font-family: 'Monaco', 'Menlo', monospace; font-size: 1.1em; color: #495057; }
+    .api-desc { color: #666; margin-bottom: 20px; padding: 10px 15px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #667eea; }
+    .auth-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8em; }
+    .auth-required { background: #f8d7da; color: #721c24; }
+    .auth-optional { background: #fff3cd; color: #856404; }
+    .auth-none { background: #d4edda; color: #155724; }
+    h4 { color: #495057; margin: 20px 0 10px 0; font-size: 0.95em; }
+    h4::before { content: '▸ '; color: #667eea; }
+    .param-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9em; }
+    .param-table th { background: #f8f9fa; text-align: left; padding: 10px 12px; border: 1px solid #dee2e6; font-weight: 600; }
+    .param-table td { padding: 10px 12px; border: 1px solid #dee2e6; }
+    .required { color: #dc3545; font-weight: bold; }
+    .optional { color: #6c757d; }
+    .type { font-family: monospace; background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
+    .code-label { display: inline-block; background: #667eea; color: white; padding: 2px 8px; border-radius: 4px 4px 0 0; font-size: 0.8em; }
+    .tip { background: #e7f3ff; border: 1px solid #b6d4fe; border-radius: 8px; padding: 15px; margin: 15px 0; }
+    .tip-title { font-weight: bold; color: #0c5460; margin-bottom: 5px; }
+    .warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin: 15px 0; }
+    .warning-title { font-weight: bold; color: #856404; margin-bottom: 5px; }
+    .toc { background: white; border-radius: 12px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .toc h3 { margin-bottom: 15px; color: #495057; }
+    .toc ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+    .toc a { color: #667eea; text-decoration: none; padding: 8px 12px; display: block; border-radius: 6px; }
+    .toc a:hover { background: #f8f9fa; }
+    footer { text-align: center; padding: 30px; color: #6c757d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Chat App API 文档</h1>
+      <p>AI 聊天应用后端接口文档 - 新手友好版</p>
+    </header>
+    
+    <div class="base-url">
+      <strong>🌐 接口基础地址：</strong> <code>http://www.dolmo.top:3001</code>
+      <p style="margin-top: 10px; font-size: 0.9em;">所有接口都以此地址为前缀，例如登录接口完整地址为：<code>http://www.dolmo.top:3001/api/user/login</code></p>
+    </div>
+    
+    <div class="toc">
+      <h3>📑 接口目录</h3>
+      <ul>
+        <li><a href="#auth">🔐 认证说明</a></li>
+        <li><a href="#user-register">用户注册</a></li>
+        <li><a href="#user-login">用户登录</a></li>
+        <li><a href="#user-me">获取用户信息</a></li>
+        <li><a href="#conv-list">获取会话列表</a></li>
+        <li><a href="#conv-create">创建会话</a></li>
+        <li><a href="#conv-detail">获取会话详情</a></li>
+        <li><a href="#conv-update">更新会话标题</a></li>
+        <li><a href="#conv-delete">删除会话</a></li>
+        <li><a href="#chat-stream">流式聊天（推荐）</a></li>
+        <li><a href="#chat-message">普通聊天</a></li>
+        <li><a href="#health">健康检查</a></li>
+      </ul>
+    </div>
+    
+    <!-- 认证说明 -->
+    <div class="section" id="auth">
+      <div class="section-header"><h2>🔐 认证说明</h2></div>
+      <div class="api-item">
+        <div class="api-desc">本系统使用 <strong>JWT (JSON Web Token)</strong> 进行身份认证。登录成功后会返回一个 token，后续请求需要在 HTTP Header 中携带此 token。</div>
+        
+        <h4>认证流程</h4>
+        <ol style="margin-left: 20px; margin-bottom: 20px;">
+          <li>调用登录接口，获取 <code>token</code></li>
+          <li>将 token 保存到本地（如 localStorage）</li>
+          <li>后续请求在 Header 中添加：<code>Authorization: Bearer {token}</code></li>
+        </ol>
+        
+        <h4>请求头示例</h4>
+        <span class="code-label">HTTP Header</span>
+        <pre>Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</pre>
+        
+        <div class="tip">
+          <div class="tip-title">💡 提示</div>
+          注意 Bearer 和 token 之间有一个空格。token 有效期为 7 天，过期后需要重新登录。
+        </div>
+        
+        <h4>认证标识说明</h4>
+        <table class="param-table">
+          <tr><th>标识</th><th>含义</th></tr>
+          <tr><td><span class="auth-required">需要登录</span></td><td>必须携带有效的 token 才能访问</td></tr>
+          <tr><td><span class="auth-optional">可选登录</span></td><td>可以不登录访问，但登录后会有额外功能（如消息持久化）</td></tr>
+          <tr><td><span class="auth-none">无需登录</span></td><td>任何人都可以访问</td></tr>
+        </table>
+      </div>
+    </div>
+    
+    <!-- 用户相关接口 -->
+    <div class="section">
+      <div class="section-header"><h2>👤 用户相关接口</h2></div>
+      
+      <!-- 注册 -->
+      <div class="api-item" id="user-register">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/user/register</span>
+          <span class="auth-badge auth-none">无需登录</span>
+        </div>
+        <div class="api-desc">创建新用户账号。注册成功后需要调用登录接口获取 token。</div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>username</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户名，3-50 个字符，需唯一</td></tr>
+          <tr><td>password</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>密码，至少 6 位</td></tr>
+          <tr><td>nickname</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>昵称，用于显示</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript (fetch)</span>
+<pre>const response = await fetch('http://www.dolmo.top:3001/api/user/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    username: 'zhangsan',
+    password: '123456',
+    nickname: '张三'
+  })
+});
+const data = await response.json();</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "username": "zhangsan",
+    "nickname": "张三"
+  }
+}</pre>
+        
+        <h4>错误响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": false,
+  "error": "用户名已存在"
+}</pre>
+      </div>
+      
+      <!-- 登录 -->
+      <div class="api-item" id="user-login">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/user/login</span>
+          <span class="auth-badge auth-none">无需登录</span>
+        </div>
+        <div class="api-desc">用户登录，成功后返回 token 和用户信息。<strong>请妥善保存返回的 token！</strong></div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>username</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户名</td></tr>
+          <tr><td>password</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>密码</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript (fetch)</span>
+<pre>const response = await fetch('http://www.dolmo.top:3001/api/user/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    username: 'zhangsan',
+    password: '123456'
+  })
+});
+const data = await response.json();
+
+// 保存 token 到本地存储
+if (data.success) {
+  localStorage.setItem('token', data.data.token);
+  localStorage.setItem('user', JSON.stringify(data.data.user));
+}</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "username": "zhangsan",
+      "nickname": "张三"
+    }
+  }
+}</pre>
+        
+        <div class="warning">
+          <div class="warning-title">⚠️ 重要</div>
+          token 有效期为 7 天。请将 token 保存到 localStorage，后续所有需要登录的接口都要用到它。
+        </div>
+      </div>
+      
+      <!-- 获取用户信息 -->
+      <div class="api-item" id="user-me">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/user/me</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">获取当前登录用户的详细信息。可用于验证 token 是否有效。</div>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript (fetch)</span>
+<pre>const token = localStorage.getItem('token');
+const response = await fetch('http://www.dolmo.top:3001/api/user/me', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+const data = await response.json();</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "username": "zhangsan",
+    "nickname": "张三",
+    "created_at": "2024-01-15T08:30:00.000Z"
+  }
+}</pre>
+      </div>
+    </div>
+    
+    <!-- 会话相关接口 -->
+    <div class="section">
+      <div class="section-header"><h2>💬 会话相关接口</h2></div>
+      
+      <!-- 获取会话列表 -->
+      <div class="api-item" id="conv-list">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/conversations</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">获取当前用户的所有会话列表，按更新时间倒序排列（最新的在前面）。</div>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript (fetch)</span>
+<pre>const token = localStorage.getItem('token');
+const response = await fetch('http://www.dolmo.top:3001/api/conversations', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+const data = await response.json();</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": [
+    {
+      "id": "conv-uuid-1",
+      "title": "关于 Vue3 的问题",
+      "created_at": "2024-01-15T10:00:00.000Z",
+      "updated_at": "2024-01-15T10:30:00.000Z"
+    },
+    {
+      "id": "conv-uuid-2",
+      "title": "新对话",
+      "created_at": "2024-01-14T09:00:00.000Z",
+      "updated_at": "2024-01-14T09:15:00.000Z"
+    }
+  ]
+}</pre>
+      </div>
+      
+      <!-- 创建会话 -->
+      <div class="api-item" id="conv-create">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/conversations</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">手动创建一个新会话。<strong>注意：</strong>通常不需要调用此接口，发送第一条消息时会自动创建会话。</div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>title</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话标题，默认为"新对话"</td></tr>
+        </table>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "id": "conv-uuid-new",
+    "title": "新对话",
+    "created_at": "2024-01-15T11:00:00.000Z"
+  }
+}</pre>
+      </div>
+      
+      <!-- 获取会话详情 -->
+      <div class="api-item" id="conv-detail">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/conversations/:id</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">获取指定会话的详细信息，包含该会话的所有聊天消息。</div>
+        
+        <h4>路径参数</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">string</span></td><td>会话 ID</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript (fetch)</span>
+<pre>const conversationId = 'conv-uuid-1';
+const token = localStorage.getItem('token');
+const response = await fetch(`http://www.dolmo.top:3001/api/conversations/${conversationId}`, {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+const data = await response.json();</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "id": "conv-uuid-1",
+    "title": "关于 Vue3 的问题",
+    "messages": [
+      {
+        "id": "msg-uuid-1",
+        "role": "user",
+        "content": "Vue3 和 Vue2 有什么区别？",
+        "created_at": "2024-01-15T10:00:00.000Z",
+        "images": []
+      },
+      {
+        "id": "msg-uuid-2",
+        "role": "assistant",
+        "content": "Vue3 相比 Vue2 有很多改进...",
+        "created_at": "2024-01-15T10:00:05.000Z",
+        "images": []
+      }
+    ]
+  }
+}</pre>
+        
+        <div class="tip">
+          <div class="tip-title">💡 消息角色说明</div>
+          <code>role: "user"</code> - 用户发送的消息；<code>role: "assistant"</code> - AI 回复的消息
+        </div>
+      </div>
+      
+      <!-- 更新会话标题 -->
+      <div class="api-item" id="conv-update">
+        <div class="api-title">
+          <span class="method put">PUT</span>
+          <span class="endpoint">/api/conversations/:id</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">更新指定会话的标题。</div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>title</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>新的会话标题</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript (fetch)</span>
+<pre>const conversationId = 'conv-uuid-1';
+const token = localStorage.getItem('token');
+const response = await fetch(`http://www.dolmo.top:3001/api/conversations/${conversationId}`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({ title: 'Vue3 学习笔记' })
+});
+const data = await response.json();</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{ "success": true }</pre>
+      </div>
+      
+      <!-- 删除会话 -->
+      <div class="api-item" id="conv-delete">
+        <div class="api-title">
+          <span class="method delete">DELETE</span>
+          <span class="endpoint">/api/conversations/:id</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">删除指定会话及其所有消息。<strong>此操作不可恢复！</strong></div>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript (fetch)</span>
+<pre>const conversationId = 'conv-uuid-1';
+const token = localStorage.getItem('token');
+const response = await fetch(`http://www.dolmo.top:3001/api/conversations/${conversationId}`, {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+const data = await response.json();</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{ "success": true }</pre>
+      </div>
+    </div>
+    
+    <!-- 聊天相关接口 -->
+    <div class="section">
+      <div class="section-header"><h2>🤖 聊天相关接口</h2></div>
+      
+      <!-- 流式聊天 -->
+      <div class="api-item" id="chat-stream">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/chat/stream</span>
+          <span class="auth-badge auth-optional">可选登录</span>
+        </div>
+        <div class="api-desc"><strong>⭐ 推荐使用！</strong>流式聊天接口，AI 回复会实时逐字返回，用户体验更好。使用 Server-Sent Events (SSE) 技术。</div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户发送的消息内容</td></tr>
+          <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID，不传则创建新会话（仅登录用户有效）</td></tr>
+          <tr><td>images</td><td><span class="type">array</span></td><td><span class="optional">否</span></td><td>图片数组，每项为 Base64 编码的图片数据</td></tr>
+        </table>
+        
+        <h4>响应格式说明（SSE 事件流）</h4>
+        <table class="param-table">
+          <tr><th>事件类型 (type)</th><th>说明</th><th>数据</th></tr>
+          <tr><td><code>conversation</code></td><td>新会话创建成功</td><td>conversationId</td></tr>
+          <tr><td><code>chunk</code></td><td>AI 回复的一小段文字</td><td>content（部分内容）</td></tr>
+          <tr><td><code>done</code></td><td>AI 回复完成</td><td>content（完整内容）</td></tr>
+          <tr><td><code>error</code></td><td>发生错误</td><td>message（错误原因）</td></tr>
+        </table>
+        
+        <h4>完整请求示例</h4>
+        <span class="code-label">JavaScript (fetch + ReadableStream)</span>
+<pre>async function streamChat(message, conversationId) {
+  const token = localStorage.getItem('token');
+  
+  const response = await fetch('http://www.dolmo.top:3001/api/chat/stream', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // 如果已登录，添加 Authorization 头
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ message, conversationId })
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullContent = '';
+  let newConversationId = conversationId;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value);
+    const lines = chunk.split('\n');
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          
+          switch (data.type) {
+            case 'conversation':
+              // 新会话创建，保存会话 ID
+              newConversationId = data.conversationId;
+              break;
+            case 'chunk':
+              // 收到一小段回复，实时显示
+              fullContent += data.content;
+              document.getElementById('response').innerText = fullContent;
+              break;
+            case 'done':
+              // 回复完成
+              console.log('完整回复:', data.content);
+              break;
+            case 'error':
+              console.error('错误:', data.message);
+              break;
+          }
+        } catch (e) { /* 忽略解析错误 */ }
+      }
+    }
+  }
+
+  return { content: fullContent, conversationId: newConversationId };
+}
+
+// 使用示例
+streamChat('你好，请介绍一下自己');</pre>
+        
+        <div class="tip">
+          <div class="tip-title">💡 登录 vs 未登录</div>
+          <strong>已登录：</strong>消息会保存到数据库，可以在会话列表中查看历史记录<br>
+          <strong>未登录：</strong>可以正常聊天，但消息不会保存，刷新页面后丢失
+        </div>
+      </div>
+      
+      <!-- 普通聊天 -->
+      <div class="api-item" id="chat-message">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/chat/message</span>
+          <span class="auth-badge auth-optional">可选登录</span>
+        </div>
+        <div class="api-desc">普通聊天接口（非流式），等待 AI 完整回复后一次性返回。适合简单场景，但用户体验不如流式接口。</div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户发送的消息内容</td></tr>
+          <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
+          <tr><td>images</td><td><span class="type">array</span></td><td><span class="optional">否</span></td><td>图片数组（Base64）</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript (fetch)</span>
+<pre>const token = localStorage.getItem('token');
+const response = await fetch('http://www.dolmo.top:3001/api/chat/message', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  },
+  body: JSON.stringify({ message: '你好' })
+});
+const data = await response.json();</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "content": "你好！有什么我可以帮助你的吗？",
+    "conversationId": "conv-uuid-1",
+    "timestamp": "2024-01-15T10:00:00.000Z"
+  }
+}</pre>
+      </div>
+      
+      <!-- 健康检查 -->
+      <div class="api-item" id="health">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/health</span>
+          <span class="auth-badge auth-none">无需登录</span>
+        </div>
+        <div class="api-desc">检查服务器是否正常运行。可用于监控或测试连接。</div>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">cURL</span>
+<pre>curl http://www.dolmo.top:3001/api/health</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "status": "ok",
+  "timestamp": "2024-01-15T10:00:00.000Z"
+}</pre>
+      </div>
+    </div>
+    
+    <!-- 错误处理 -->
+    <div class="section">
+      <div class="section-header"><h2>❌ 通用错误处理</h2></div>
+      <div class="api-item">
+        <div class="api-desc">所有接口在发生错误时都会返回统一格式的错误响应。</div>
+        
+        <h4>错误响应格式</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": false,
+  "error": "错误信息描述"
+}</pre>
+        
+        <h4>常见错误码</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>含义</th><th>常见原因</th></tr>
+          <tr><td>400</td><td>请求参数错误</td><td>缺少必填参数、参数格式错误</td></tr>
+          <tr><td>401</td><td>未授权</td><td>未登录、token 过期或无效</td></tr>
+          <tr><td>404</td><td>资源不存在</td><td>会话/用户不存在</td></tr>
+          <tr><td>500</td><td>服务器错误</td><td>服务器内部异常</td></tr>
+        </table>
+        
+        <h4>前端错误处理示例</h4>
+        <span class="code-label">JavaScript</span>
+<pre>async function apiRequest(url, options = {}) {
+  const token = localStorage.getItem('token');
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...options.headers
+    }
+  });
+  
+  const data = await response.json();
+  
+  if (!data.success) {
+    // 如果是 401 错误，可能需要重新登录
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // 跳转到登录页或显示登录弹窗
+      alert('登录已过期，请重新登录');
+    }
+    throw new Error(data.error);
+  }
+  
+  return data.data;
+}</pre>
+      </div>
+    </div>
+    
+    <footer>
+      <p>📝 Chat App API 文档 | 生成时间：2024</p>
+      <p style="margin-top: 10px; font-size: 0.9em;">如有问题，请联系后端开发者</p>
+    </footer>
+  </div>
+</body>
+</html>

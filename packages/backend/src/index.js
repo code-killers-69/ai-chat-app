@@ -2,14 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { chatRouter } from './routes/chat.js';
 import { userRouter } from './routes/user.js';
 import { conversationRouter } from './routes/conversation.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initDatabase } from './config/database.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,8 +39,8 @@ async function start() {
     // 初始化数据库
     await initDatabase();
     
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

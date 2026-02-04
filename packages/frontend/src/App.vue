@@ -74,20 +74,6 @@ const handleConversationDeleted = () => {
 }
 </script>
 
-<style>
-:root {
-  --primary-color: #d3adf7;
-  --primary-hover: #b37feb;
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  height: 100%;
-}
-</style>
-
 <style scoped>
 .app-wrapper {
   display: flex;
