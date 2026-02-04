@@ -1,5 +1,5 @@
 <template>
-    <div :class="{ haveLoadingAnimation: enableLoadingGif }">
+    <div ref="rootEl" :class="{ haveLoadingAnimation: enableLoadingGif }">
         <div class="loadingAnimation" v-if="enableLoadingGif">
             <img src="/gif/loading.gif" alt="loading">
         </div>
@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const props = defineProps({
     imageUrl: {
@@ -29,10 +29,16 @@ const props = defineProps({
 })
 
 const seeMeNow = ref(false)
+const rootEl = ref(null)
 const nowSeeMe = () => {
     seeMeNow.value = true
 }
 
+onMounted(() => {
+    if (rootEl.value) {
+        rootEl.value.revealSelf = nowSeeMe
+    }
+})
 defineExpose({ nowSeeMe })
 
 </script>

@@ -11,7 +11,7 @@
             <p>{{ message.content }}</p>
           </div>
           <ImageContainer v-for="imageUrl in message.imageUrls" :image-url="imageUrl" :enable-loading-gif="false"
-            ref="observeTarget">
+            ref="observeTarget" v-observe :key="imageUrl">
           </ImageContainer>
           <div class="time-tag">
             <p>{{ message.time }}</p>
@@ -87,12 +87,13 @@ const handlePaste = (e) => {
   }
 }
 
-const imageTarget = useTemplateRef('observeTarget')
+// const imageTarget = useTemplateRef('observeTarget')
+const observeTarget = ref(null);
 
-const option = {
-  root: scrollArea.value,
-  threshold: 0.25,
-}
+// const option = {
+//   root: scrollArea.value,
+//   threshold: 0.25,
+// }
 
 const callBack = (entries) => {
   entries.forEach(entry => {
@@ -103,25 +104,80 @@ const callBack = (entries) => {
   });
 }
 
-let observer = new IntersectionObserver(callBack, option);
+let observer;
+
+onMounted(() => {
+  observer = new IntersectionObserver(callBack, {
+    root: scrollArea.value,
+    threshold: 0.25,
+  });
+})
+
+const vObserve={
+
+  mounted:(el) =>{
+    console.log('组件挂载');
+    if(observer){
+      observer.observe(el)
+      console.log('安装监视');
+    }
+  },
+  unmounted:() =>{
+      observer.unobserve(el)
+      console.log('销毁监视');
+    },
+}
+
+// const vObserve = {
+
+//   mounted:  (el, binding, vnode) => {
+//     console.log('指令已挂载');
+//     const instance = vnode.component?.exposed || vnode.component?.proxy;
+//     console.log(vnode.component);
+//     el.revealSelf = () => {
+//         console.log(1);
+//         console.log(vnode);
+        
+
+//         console.log(instance);
+//         if (instance && instance.nowSeeMe) {
+//           instance.nowSeeMe();
+//           console.log('内部调用成功');
+//         } else {
+//           console.log('调用失败');
+//         }
+//       };
+
+//     if (observer) {
+//       observer.observe(el)
+//     };
+//   },
+
+//   unmounted:()=> {
+//     observer.unobserve(el)
+//   }
+// }
 
 //监听消息，监测到图片组件就准备安装监视器（）
-watch(messages.value, async () => {
+// watch(messages.value, async () => {
 
-  await nextTick();
+//   await nextTick();
 
-  if (!imageTarget.value) return;
-  imageTarget.value.forEach(instance => {
-    const target = instance.$el;      //真正的实例管理的 DOM节点！操作dom节点来操作其组件
-    if (target && !target.dataset.isObserved) {
-      target.revealSelf = () => {
-        instance.nowSeeMe()
-      }
-      observer.observe(target)
-      target.dataset.isObserved = 'true'  //中途定义属性 打上标签避免循环检测，是不是能优化到更外围？
-    }
-  });
-}, { deep: true, immediate: true })
+//   if (!imageTarget.value) return;
+//   imageTarget.value.forEach(instance => {
+//     const target = instance.$el;      //真正的实例管理的 DOM节点！操作dom节点来操作其组件
+//     if (target && !target.dataset.isObserved) {
+//       target.revealSelf = () => {
+//         instance.nowSeeMe()
+//       }
+//       observer.observe(target)
+//       target.dataset.isObserved = 'true'  //中途定义属性 打上标签避免循环检测，是不是能优化到更外围？
+//     }
+//   });
+// }, { deep: true, immediate: true })
+
+
+
 
 
 
