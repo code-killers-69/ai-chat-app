@@ -90,15 +90,11 @@ const handlePaste = (e) => {
 // const imageTarget = useTemplateRef('observeTarget')
 const observeTarget = ref(null);
 
-// const option = {
-//   root: scrollArea.value,
-//   threshold: 0.25,
-// }
-
 const callBack = (entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
-      entry.target.revealSelf() // 对dom根结点操作  element
+      const img=entry.target.querySelector(".imageBlock")
+      img.src=entry.target.dataset.url
       observer.unobserve(entry.target)
     }
   });

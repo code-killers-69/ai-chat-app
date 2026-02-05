@@ -1,9 +1,9 @@
 <template>
-    <div ref="rootEl" :class="{ haveLoadingAnimation: enableLoadingGif }">
+    <div ref="rootEl" :data-url="imageUrl" :class="{ haveLoadingAnimation: enableLoadingGif }">
         <div class="loadingAnimation" v-if="enableLoadingGif">
             <img src="/gif/loading.gif" alt="loading">
         </div>
-        <img :class="{ noLoading: !enableLoadingGif, haveLoading: enableLoadingGif }"
+        <img class='imageBlock' :class="{ noLoading: !enableLoadingGif, haveLoading: enableLoadingGif }"
             :src="(seeMeNow || enableLoadingGif) ? imageUrl : '/gif/loading.gif'">
     </div>
 
@@ -44,6 +44,9 @@ onUnmounted(()=>{
     if(rootEl.value){
         rootEl.value.revealSelf = null;
     }
+    // if(rootEl.value){
+    //     rootEl.value.dataset.src=imageUrl;
+    // }
 })
 defineExpose({ nowSeeMe })
 
