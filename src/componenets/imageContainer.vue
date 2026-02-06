@@ -1,55 +1,35 @@
 <template>
-    <div ref="rootEl" :data-url="imageUrl" :class="{ haveLoadingAnimation: enableLoadingGif }">
-        <div class="loadingAnimation" v-if="enableLoadingGif">
+    <div ref="rootEl" :class="{ haveLoadingAnimation: enableLoadingGif }" :style="{ '--size': size + 'px' }">
+       <div class="loadingAnimation" v-if="enableLoadingGif && !isLoaded"> <!--  删掉！ -->
             <img src="/gif/loading.gif" alt="loading">
         </div>
-        <img class='imageBlock' :class="{ noLoading: !enableLoadingGif, haveLoading: enableLoadingGif }"
-            :src="(seeMeNow || enableLoadingGif) ? imageUrl : '/gif/loading.gif'">
+        <img class='imageBlock noLoading' :src="imageUrl" @load="onLoaded">
     </div>
-
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref } from 'vue';
 
 const props = defineProps({
     imageUrl: {
         type: String,
         required: true
     },
-
-    untitle: {
-        type: Number
-    },
-
     enableLoadingGif: {
         type: Boolean,
         default: false
     },
+    size: {
+        type: Number,
+        default: 80
+    }
 })
-
-const seeMeNow = ref(false)
-const rootEl = ref(null)
-const nowSeeMe = () => {
-    seeMeNow.value = true
+const emit = defineEmits(['onImageLoaded'])
+const isLoaded = ref(false)
+const onLoaded = () => {
+    isLoaded.value = true;
+    emit('onImageLoaded')
 }
-
-onMounted(() => {
-    if (rootEl.value) {
-        rootEl.value.revealSelf = nowSeeMe
-    }
-});
-
-onUnmounted(()=>{
-    if(rootEl.value){
-        rootEl.value.revealSelf = null;
-    }
-    // if(rootEl.value){
-    //     rootEl.value.dataset.src=imageUrl;
-    // }
-})
-defineExpose({ nowSeeMe })
-
 </script>
 
 <style scoped>
@@ -63,23 +43,20 @@ defineExpose({ nowSeeMe })
 }
 
 .loadingAnimation {
-    height: 100px;
     position: relative;
-    width: 100px;
     margin: 0 2px;
     border-radius: 5px;
-    background-color: rgb(164, 125, 171);
 }
 
 .loadingAnimation img {
-    height: 100px;
-    min-width: 100px;
+    min-width: var(--size);
+    height: var(--size);
     margin: 0 auto;
     border-radius: 5px
 }
 
 .noLoading {
-    max-width: 200px;
+    max-width: var(--size);
     margin: 5px 0;
     border-radius: 10px;
 }
