@@ -1,5 +1,6 @@
 <template>
     <div class="container">
+        <button class="createNewConvo" @click="createNewConvo">New Convo</button>
         <div class="conversation" v-for="conversation in conversations" @click="choseConvo(conversation)">{{
             conversation.title }}
         </div>
@@ -7,19 +8,14 @@
 </template>
 
 <script setup>
-import { conversations } from '@/states/conversation';
+import { conversations, Conversation } from '@/states/conversation';
 import { Message, messages } from '@/states/message';
 import { conversationIdRef } from '@/states/user';
-import { onMounted } from 'vue';
-
-onMounted(() => {
-
-})
 
 const choseConvo = async (conversation) => {
 
     messages.value = conversation.messages
-    if (conversation.messages.length === 0) {
+    if (conversation.messages.length === 0&&conversation.id) {   
         const conversationId = conversation.id;
         conversationIdRef.value = conversation.id;
         const token = localStorage.getItem('token');
@@ -32,6 +28,11 @@ const choseConvo = async (conversation) => {
     }
 }
 
+
+
+const createNewConvo = () => {
+    conversations.value.push(new Conversation(null, `newConvo${conversations.value.length+1}`))
+}
 
 defineExpose({ choseConvo })
 </script>
