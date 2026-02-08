@@ -27,7 +27,7 @@ const password = ref('')
 const emit = defineEmits(['onLogin', 'exit'])
 
 const getUserFetch = async (url) => {
-    const response = await fetch(`http://www.dolmo.top:3001/api${url}`, {
+    const response = await fetch(`http://scj.dolmo.top:3001/api${url}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

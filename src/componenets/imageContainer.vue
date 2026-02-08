@@ -1,6 +1,6 @@
 <template>
-    <div ref="rootEl" :class="{ haveLoadingAnimation: enableLoadingGif }" :style="{ '--size': size + 'px' }">
-       <div class="loadingAnimation" v-if="enableLoadingGif && !isLoaded"> <!--  删掉！ -->
+    <div :class="{ haveLoadingAnimation: enableLoadingGif }" :style="{ '--size': size + 'px' }">
+        <div class="loadingAnimation" v-if="enableLoadingGif && !isLoaded"> <!--  删掉！ -->
             <img src="/gif/loading.gif" alt="loading">
         </div>
         <img class='imageBlock noLoading' :src="imageUrl" @load="onLoaded">

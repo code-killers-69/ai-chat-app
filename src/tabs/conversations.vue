@@ -13,17 +13,22 @@ import { Message, messages } from '@/states/message';
 import { conversationIdRef } from '@/states/user';
 
 const choseConvo = async (conversation) => {
-
     messages.value = conversation.messages
-    if (conversation.messages.length === 0&&conversation.id) {   
-        const conversationId = conversation.id;
-        conversationIdRef.value = conversation.id;
+    conversationIdRef.value = conversation.id;
+    if (conversation.messages.length === 0 && conversation.id) {
+        let conversationId = conversation.id;
+        // conversationId = newConvoId.value;
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://www.dolmo.top:3001/api/conversations/${conversationId}`, {
+        const response = await fetch(`http://scj.dolmo.top:3001/api/conversations/${conversationId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        messages.value = data.data.messages.map((message) => new Message(message['content'], message['created_at'], message['role'], message['images']))
+        console.error(data);
+        messages.value = data.data.messages.map((message) => new Message(
+            message['content'],
+            message['created_at'],
+            message['role'],
+            message['images'].map((image) => image.url)))
         conversation.messages = messages.value
     }
 }
@@ -31,7 +36,7 @@ const choseConvo = async (conversation) => {
 
 
 const createNewConvo = () => {
-    conversations.value.push(new Conversation(null, `newConvo${conversations.value.length+1}`))
+    conversations.value.push(new Conversation(null, `newConvo${conversations.value.length + 1}`))
 }
 
 defineExpose({ choseConvo })

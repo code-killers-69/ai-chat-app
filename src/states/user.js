@@ -7,4 +7,6 @@ const setToken = (newToken) => {
 };
 
 const conversationIdRef = ref();
-export { conversationIdRef, token, userInfoRef, setToken };
+const newConvoId = ref([]);
+
+export { conversationIdRef, token, userInfoRef, setToken, newConvoId };

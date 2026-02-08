@@ -23,7 +23,7 @@
                         <p>{{ message.content }}</p>
                     </div>
                     <ImageContainer v-for="imageUrl in message.imageUrls" :image-url="imageUrl"
-                        :enable-loading-gif="false" ref="observeTarget" v-observe :key="imageUrl">
+                        :enable-loading-gif="false" v-observe :key="imageUrl" :size="200">
                     </ImageContainer>
                     <div class="time-tag">
                         <p>{{ message.time }}</p>
@@ -50,7 +50,7 @@ import { ref, nextTick, onMounted } from 'vue';
 import ImageContainer from '@/componenets/imageContainer.vue';
 import { getDate } from '@/utils/getCurrentTimestamp';
 import userLogin from '@/componenets/userLogin.vue';
-import { conversationIdRef, setToken, token, userInfoRef } from '@/states/user';
+import { conversationIdRef, newConvoId, setToken, token, userInfoRef } from '@/states/user';
 import { Message, messages } from '@/states/message';
 const messageContent = ref('')
 const scrollArea = ref(null);
@@ -63,20 +63,23 @@ const sendMessageIn = async (event) => {
     const newMessageContent = messageContent.value;
     messageContent.value = ''
 
-    const respose = await fetch('http://www.dolmo.top:3001/api/chat/message', {
+
+    const respose = await fetch('http://scj.dolmo.top:3001/api/chat/message', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
 
-        body: JSON.stringify({ message: newMessageContent, conversationId: conversationIdRef.value })
+        body: JSON.stringify({ message: newMessageContent, conversationId: conversationIdRef.value, images: imageBase64s })
     })
 
     const test = await respose.json()
+    // newConvoId.value = test.data.conversationId
     messages.value.push({ content: test.data.content, time: currentTimestamp, role: 'assistant' })
 
-    imageUrls.value = []
+    imageUrls.value = [];
+    imageBase64s.length = 0
     nextTick(() => {
         scrollArea.value.scrollTo({
             top: scrollArea.value.scrollHeight,
@@ -88,13 +91,22 @@ const sendMessageIn = async (event) => {
 
 const fileInput = ref(null);
 const imageUrls = ref([]);
+const imageBase64s = [];
 
 const handleFileChange = (e) => {
     const files = e.target.files;
     if (files.length > 0) {
         for (const file of files) {
             imageUrls.value.push(URL.createObjectURL(file))
+            const reader = new FileReader();
+            reader.readAsDataURL(file)
+            reader.onloadend = () => {
+                imageBase64s.push(reader.result)
+            }
         }
+        console.log(imageBase64s);
+
+        // console.log(imageUrls.value);
     }
 };
 
@@ -102,27 +114,27 @@ const handlePaste = (e) => {
     e.preventDefault();
     for (const file of e.clipboardData.files) {
         if (e.clipboardData.files.length && file.type.includes('image')) {
-            imageUrls.value.push(URL.createObjectURL(file))
+            imageUrls.value.push(URL.createObjectURL(file));
+            // imageBlobs.push(file)
         }
+        // console.log(imageBlobs);
     }
 }
 
 let observer;
 
-onMounted(() => {
-    observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const img = entry.target.querySelector(".imageBlock")
-                img.src = entry.target.dataset.url
-                observer.unobserve(entry.target)
-            }
-        });
-    }, {
-        root: scrollArea.value,
-        threshold: 0.25,
+observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const img = entry.target.querySelector(".imageBlock")
+            img.src = img.dataset.url
+            observer.unobserve(entry.target)
+        }
     });
-})
+}, {
+    root: null,
+    threshold: 0.25,
+});
 
 const vObserve = {
     mounted: (el) => {
@@ -132,7 +144,12 @@ const vObserve = {
             console.log('安装监视');
         }
     },
-    unmounted: () => {
+    beforeMount(el) {
+        const img = el.querySelector(".imageBlock")
+        img.dataset.url = img.src
+        img.src = ''
+    },
+    unmounted: (el) => {
         observer.unobserve(el)
         console.log('销毁监视');
     },

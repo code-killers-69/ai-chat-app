@@ -17,7 +17,7 @@ const conversationsRef = ref(null)
 onMounted(async () => {
   const token = localStorage.getItem('token')
   if (token) {
-    const response = await fetch('http://www.dolmo.top:3001/api/conversations', {
+    const response = await fetch('http://scj.dolmo.top:3001/api/conversations', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await response.json();
