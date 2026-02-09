@@ -1,8 +1,12 @@
 <template>
     <div class="container">
         <button class="createNewConvo" @click="createNewConvo">New Convo</button>
-        <div class="conversation" v-for="conversation in conversations" @click="choseConvo(conversation)" ref="convoList">{{
-            conversation.title }}
+        <div class="conversation" v-for="(conversation, index)  in conversations" @click="choseConvo(conversation)"
+            ref="convoList" style="display: flex;">
+            <div class="title">
+                {{ conversation.title }}
+            </div>
+            <button class="delete-btn" @click="handleConvoDelete(conversation, index)">Delete</button>
         </div>
     </div>
 </template>
@@ -32,13 +36,24 @@ const choseConvo = async (conversation) => {
     }
 }
 
-const convoListRef=useTemplateRef('convoList')
+const convoListRef = useTemplateRef('convoList')
 
-const createNewConvo = async() => {
+const createNewConvo = async () => {
     conversations.value.push(new Conversation(null, `newConvo${conversations.value.length + 1}`))
     await nextTick();
-    convoListRef.value[convoListRef.value.length-1].click()
+    convoListRef.value[convoListRef.value.length - 1].click()
 }
+
+const handleConvoDelete = async (conversation, index) => {
+    const conversationId = conversation.id
+    conversations.value.splice(index, 1);
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://scj.dolmo.top:3001/api/conversations/${conversationId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+}
+
 
 defineExpose({ choseConvo })
 </script>
