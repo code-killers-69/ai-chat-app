@@ -87,3 +87,41 @@ conversationRouter.delete('/:id', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+/**
+ * 分页获取会话消息（储备接口）
+ * GET /api/conversations/:id/messages
+ * 
+ * Query 参数:
+ * - limit: 每页数量，默认20
+ * - before: 消息ID，获取此消息之前的（更早的），用于向上滚动加载
+ * - after: 消息ID，获取此消息之后的（更新的），用于向下加载
+ * 
+ * 使用示例:
+ * - 首次加载最新20条: GET /api/conversations/:id/messages
+ * - 向上滚动加载更早的: GET /api/conversations/:id/messages?before=消息ID&limit=20
+ * - 加载更新的消息: GET /api/conversations/:id/messages?after=消息ID
+ */
+conversationRouter.get('/:id/messages', async (req, res) => {
+  try {
+    const { limit, before, after } = req.query;
+    
+    const result = await messageService.getMessagesPaginated(
+      req.params.id,
+      req.user.userId,
+      {
+        limit: limit ? parseInt(limit, 10) : 20,
+        before,
+        after,
+      }
+    );
+    
+    if (!result) {
+      return res.status(404).json({ success: false, error: '会话不存在' });
+    }
+    
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});

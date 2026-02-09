@@ -174,4 +174,109 @@ export const messageService = {
       [title, conversationId, userId]
     );
   },
+
+  /**
+   * 分页获取会话消息（储备接口）
+   * @param {string} conversationId - 会话ID
+   * @param {string} userId - 用户ID
+   * @param {Object} options - 分页选项
+   * @param {number} options.limit - 每页数量，默认20
+   * @param {string} options.before - 获取此消息ID之前的消息（向上滚动加载更早的）
+   * @param {string} options.after - 获取此消息ID之后的消息（向下加载更新的）
+   */
+  async getMessagesPaginated(conversationId, userId, options = {}) {
+    const { limit = 20, before, after } = options;
+
+    // 验证会话所有权
+    const [convRows] = await getPool().execute(
+      'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
+      [conversationId, userId]
+    );
+
+    if (convRows.length === 0) {
+      return null;
+    }
+
+    // 构建查询条件
+    let whereClause = 'm.conversation_id = ?';
+    const params = [conversationId];
+
+    if (before) {
+      // 获取指定消息之前的消息（更早的）
+      whereClause += ' AND m.created_at < (SELECT created_at FROM messages WHERE id = ?)';
+      params.push(before);
+    } else if (after) {
+      // 获取指定消息之后的消息（更新的）
+      whereClause += ' AND m.created_at > (SELECT created_at FROM messages WHERE id = ?)';
+      params.push(after);
+    }
+
+    params.push(limit);
+
+    // 获取消息
+    // before 查询或默认：按时间倒序取最近的 N 条，再反转为正序
+    // after 查询：按时间正序取
+    const orderDirection = before ? 'DESC' : (after ? 'ASC' : 'DESC');
+    
+    const [messages] = await getPool().execute(
+      `SELECT m.*, 
+        (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'url', i.url, 'storageType', i.storage_type))
+         FROM images i WHERE i.message_id = m.id) as images
+       FROM messages m 
+       WHERE ${whereClause}
+       ORDER BY m.created_at ${orderDirection}
+       LIMIT ?`,
+      params
+    );
+
+    // 如果是倒序取的，反转回正序
+    if (orderDirection === 'DESC') {
+      messages.reverse();
+    }
+
+    // 获取总消息数
+    const [countResult] = await getPool().execute(
+      'SELECT COUNT(*) as total FROM messages WHERE conversation_id = ?',
+      [conversationId]
+    );
+
+    // 判断是否还有更早的消息
+    let hasMoreBefore = false;
+    let hasMoreAfter = false;
+    
+    if (messages.length > 0) {
+      const firstMessage = messages[0];
+      const lastMessage = messages[messages.length - 1];
+      
+      const [olderCount] = await getPool().execute(
+        'SELECT COUNT(*) as count FROM messages WHERE conversation_id = ? AND created_at < ?',
+        [conversationId, firstMessage.created_at]
+      );
+      hasMoreBefore = olderCount[0].count > 0;
+
+      const [newerCount] = await getPool().execute(
+        'SELECT COUNT(*) as count FROM messages WHERE conversation_id = ? AND created_at > ?',
+        [conversationId, lastMessage.created_at]
+      );
+      hasMoreAfter = newerCount[0].count > 0;
+    }
+
+    return {
+      conversation: convRows[0],
+      messages: messages.map((m) => ({
+        ...m,
+        images: m.images
+          ? typeof m.images === 'string'
+            ? JSON.parse(m.images)
+            : m.images
+          : [],
+      })),
+      pagination: {
+        total: countResult[0].total,
+        limit,
+        hasMoreBefore,
+        hasMoreAfter,
+      },
+    };
+  },
 };

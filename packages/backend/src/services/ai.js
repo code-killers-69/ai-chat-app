@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { getPool } from '../config/database.js';
 
 // 硅基流动 SiliconFlow - 超低价/免费模型
 const client = new OpenAI({
@@ -14,43 +15,49 @@ const MODELS = {
   vision: 'Qwen/Qwen2-VL-72B-Instruct',
 };
 
+// 历史记录最大条数
+const MAX_HISTORY_LENGTH = 20;
+
 /**
  * AI 服务 - 可扩展设计，支持未来群聊场景
  */
 class AIService {
   constructor() {
     this.client = client;
-    // 会话历史存储 - 为群聊扩展预留
-    this.conversationHistories = new Map();
   }
 
   /**
-   * 获取或创建会话历史
-   * @param {string} conversationId - 会话ID（单聊为用户ID，群聊为群ID）
+   * 从数据库获取会话历史记录
+   * @param {string} conversationId - 会话ID
+   * @param {number} limit - 最大条数，默认20
    */
-  getConversationHistory(conversationId) {
-    if (!this.conversationHistories.has(conversationId)) {
-      this.conversationHistories.set(conversationId, []);
+  async getConversationHistoryFromDB(conversationId, limit = MAX_HISTORY_LENGTH) {
+    // 匿名用户或无效会话ID，返回空数组
+    if (!conversationId || conversationId === 'anonymous') {
+      return [];
     }
-    return this.conversationHistories.get(conversationId);
-  }
 
-  /**
-   * 添加消息到会话历史
-   * 注意：图片内容不存入历史，避免后续请求过大
-   */
-  addToHistory(conversationId, role, content) {
-    const history = this.getConversationHistory(conversationId);
-    // 如果是包含图片的消息，只保留文本部分
-    const textContent = Array.isArray(content) 
-      ? content.find(c => c.type === 'text')?.text || '' 
-      : content;
-    if (textContent) {
-      history.push({ role, content: textContent });
-    }
-    // 保持历史记录在合理范围内（最近20条）
-    if (history.length > 20) {
-      history.splice(0, history.length - 20);
+    try {
+      // 从数据库获取最近的消息（按时间倒序取，再反转为正序）
+      const [messages] = await getPool().execute(
+        `SELECT role, content FROM messages 
+         WHERE conversation_id = ? 
+         ORDER BY created_at DESC 
+         LIMIT ?`,
+        [conversationId, limit]
+      );
+
+      // 反转为正序（从旧到新）
+      messages.reverse();
+
+      // 只返回 role 和 content，图片不包含在历史中
+      return messages.map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+    } catch (error) {
+      console.error('Failed to load history from DB:', error.message);
+      return [];
     }
   }
 
@@ -93,7 +100,8 @@ class AIService {
   async streamChat({ conversationId, userId, message, images = [], onChunk, onComplete }) {
     const messageContent = this.buildMessageContent(message, images);
     
-    const history = this.getConversationHistory(conversationId);
+    // 从数据库获取历史记录
+    const history = await this.getConversationHistoryFromDB(conversationId);
     
     // 选择模型：有图片用视觉模型，否则用免费文本模型
     const model = images.length > 0 ? MODELS.vision : MODELS.text;
@@ -109,7 +117,7 @@ class AIService {
     ];
 
     try {
-      console.log('Calling AI with model:', model);
+      console.log('Calling AI with model:', model, '| History count:', history.length);
       
       const stream = await this.client.chat.completions.create({
         model,
@@ -128,9 +136,7 @@ class AIService {
         }
       }
 
-      // 记录到历史
-      this.addToHistory(conversationId, 'user', messageContent);
-      this.addToHistory(conversationId, 'assistant', fullResponse);
+      // 历史记录已经保存到数据库（由 chat.js 调用 messageService），无需再内存存储
       onComplete?.(fullResponse);
 
       return fullResponse;
@@ -142,10 +148,12 @@ class AIService {
   }
 
   /**
-   * 清除会话历史
+   * 清除会话历史（现在是空操作，因为历史存在数据库中）
+   * 保留此方法是为了 API 兼容性
    */
   clearHistory(conversationId) {
-    this.conversationHistories.delete(conversationId);
+    // 历史记录存储在数据库中，清除需要通过 messageService.deleteConversation
+    console.log('clearHistory called for:', conversationId, '(no-op, history is in DB)');
   }
 }
 
