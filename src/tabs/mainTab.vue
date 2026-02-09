@@ -75,8 +75,8 @@ const sendMessageIn = async (event) => {
     })
 
     const test = await respose.json()
-    // newConvoId.value = test.data.conversationId
-    messages.value.push({ content: test.data.content, time: currentTimestamp, role: 'assistant' })
+    conversationIdRef.value = test.data.conversationId //新对话id首次获取
+    messages.value.push(new Message(test.data.content, currentTimestamp, 'assistant'))
 
     imageBase64s.length = 0
     nextTick(() => {

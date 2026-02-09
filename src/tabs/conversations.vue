@@ -1,7 +1,7 @@
 <template>
     <div class="container">
         <button class="createNewConvo" @click="createNewConvo">New Convo</button>
-        <div class="conversation" v-for="conversation in conversations" @click="choseConvo(conversation)">{{
+        <div class="conversation" v-for="conversation in conversations" @click="choseConvo(conversation)" ref="convoList">{{
             conversation.title }}
         </div>
     </div>
@@ -11,6 +11,7 @@
 import { conversations, Conversation } from '@/states/conversation';
 import { Message, messages } from '@/states/message';
 import { conversationIdRef } from '@/states/user';
+import { nextTick, useTemplateRef } from 'vue';
 
 const choseConvo = async (conversation) => {
     messages.value = conversation.messages
@@ -31,10 +32,12 @@ const choseConvo = async (conversation) => {
     }
 }
 
+const convoListRef=useTemplateRef('convoList')
 
-
-const createNewConvo = () => {
+const createNewConvo = async() => {
     conversations.value.push(new Conversation(null, `newConvo${conversations.value.length + 1}`))
+    await nextTick();
+    convoListRef.value[convoListRef.value.length-1].click()
 }
 
 defineExpose({ choseConvo })
