@@ -59,9 +59,9 @@ const sendMessageIn = async (event) => {
     if (event.key !== 'Enter' || messageContent.value === '') return;
     const currentTimestamp = getDate()
     messages.value.push(new Message(messageContent.value, currentTimestamp, 'user', imageUrls.value))
-
     const newMessageContent = messageContent.value;
     messageContent.value = ''
+    imageUrls.value = [];
 
 
     const respose = await fetch('http://scj.dolmo.top:3001/api/chat/message', {
@@ -78,7 +78,6 @@ const sendMessageIn = async (event) => {
     // newConvoId.value = test.data.conversationId
     messages.value.push({ content: test.data.content, time: currentTimestamp, role: 'assistant' })
 
-    imageUrls.value = [];
     imageBase64s.length = 0
     nextTick(() => {
         scrollArea.value.scrollTo({
@@ -97,16 +96,14 @@ const handleFileChange = (e) => {
     const files = e.target.files;
     if (files.length > 0) {
         for (const file of files) {
-            imageUrls.value.push(URL.createObjectURL(file))
             const reader = new FileReader();
+            imageUrls.value.push(URL.createObjectURL(file))
             reader.readAsDataURL(file)
             reader.onloadend = () => {
                 imageBase64s.push(reader.result)
             }
         }
-        console.log(imageBase64s);
 
-        // console.log(imageUrls.value);
     }
 };
 
@@ -115,9 +112,7 @@ const handlePaste = (e) => {
     for (const file of e.clipboardData.files) {
         if (e.clipboardData.files.length && file.type.includes('image')) {
             imageUrls.value.push(URL.createObjectURL(file));
-            // imageBlobs.push(file)
         }
-        // console.log(imageBlobs);
     }
 }
 
@@ -138,10 +133,8 @@ observer = new IntersectionObserver((entries) => {
 
 const vObserve = {
     mounted: (el) => {
-        console.log('组件挂载');
         if (observer) {
             observer.observe(el)
-            console.log('安装监视');
         }
     },
     beforeMount(el) {
@@ -151,7 +144,6 @@ const vObserve = {
     },
     unmounted: (el) => {
         observer.unobserve(el)
-        console.log('销毁监视');
     },
 }
 

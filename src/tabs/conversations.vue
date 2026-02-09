@@ -16,14 +16,12 @@ const choseConvo = async (conversation) => {
     messages.value = conversation.messages
     conversationIdRef.value = conversation.id;
     if (conversation.messages.length === 0 && conversation.id) {
-        let conversationId = conversation.id;
-        // conversationId = newConvoId.value;
+        let conversationId = conversation.id;        // conversationId = newConvoId.value;
         const token = localStorage.getItem('token');
         const response = await fetch(`http://scj.dolmo.top:3001/api/conversations/${conversationId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        console.error(data);
         messages.value = data.data.messages.map((message) => new Message(
             message['content'],
             message['created_at'],
