@@ -39,7 +39,7 @@ export const messageService = {
       'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
       [conversationId, userId]
     );
-    
+
     if (convRows.length === 0) {
       return null;
     }
@@ -57,10 +57,14 @@ export const messageService = {
 
     return {
       ...convRows[0],
-      messages: messages.map(m => ({
+      messages: messages.map((m) => ({
         ...m,
-        images: m.images ? JSON.parse(m.images) : []
-      }))
+        images: m.images
+          ? typeof m.images === 'string'
+            ? JSON.parse(m.images)
+            : m.images
+          : [],
+      })),
     };
   },
 
@@ -69,7 +73,7 @@ export const messageService = {
    */
   async saveUserMessage(conversationId, content, imageDataList = []) {
     const messageId = uuidv4();
-    
+
     await getPool().execute(
       'INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)',
       [messageId, conversationId, 'user', content]
@@ -83,13 +87,21 @@ export const messageService = {
         imageData.originalName || 'image.jpg',
         imageData.mimeType || 'image/jpeg'
       );
-      
+
       const imageId = uuidv4();
       await getPool().execute(
         'INSERT INTO images (id, message_id, storage_type, url, original_name, mime_type, size) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [imageId, messageId, storageType, url, imageData.originalName, imageData.mimeType, size]
+        [
+          imageId,
+          messageId,
+          storageType,
+          url,
+          imageData.originalName,
+          imageData.mimeType,
+          size,
+        ]
       );
-      
+
       savedImages.push({ id: imageId, url, storageType });
     }
 
@@ -99,7 +111,13 @@ export const messageService = {
       [conversationId]
     );
 
-    return { id: messageId, role: 'user', content, images: savedImages, createdAt: new Date() };
+    return {
+      id: messageId,
+      role: 'user',
+      content,
+      images: savedImages,
+      createdAt: new Date(),
+    };
   },
 
   /**
@@ -107,7 +125,7 @@ export const messageService = {
    */
   async saveAssistantMessage(conversationId, content) {
     const messageId = uuidv4();
-    
+
     await getPool().execute(
       'INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)',
       [messageId, conversationId, 'assistant', content]
@@ -155,5 +173,5 @@ export const messageService = {
       'UPDATE conversations SET title = ? WHERE id = ? AND user_id = ?',
       [title, conversationId, userId]
     );
-  }
+  },
 };
