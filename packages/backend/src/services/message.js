@@ -187,6 +187,9 @@ export const messageService = {
   async getMessagesPaginated(conversationId, userId, options = {}) {
     const { limit = 20, before, after } = options;
 
+    // 确保 limit 是安全的正整数
+    const safeLimit = Math.max(1, Math.min(parseInt(limit, 10) || 20, 100));
+
     // 验证会话所有权
     const [convRows] = await getPool().execute(
       'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
@@ -211,8 +214,6 @@ export const messageService = {
       params.push(after);
     }
 
-    params.push(limit);
-
     // 获取消息
     // before 查询或默认：按时间倒序取最近的 N 条，再反转为正序
     // after 查询：按时间正序取
@@ -225,7 +226,7 @@ export const messageService = {
        FROM messages m 
        WHERE ${whereClause}
        ORDER BY m.created_at ${orderDirection}
-       LIMIT ?`,
+       LIMIT ${safeLimit}`,
       params
     );
 
@@ -273,7 +274,7 @@ export const messageService = {
       })),
       pagination: {
         total: countResult[0].total,
-        limit,
+        limit: safeLimit,
         hasMoreBefore,
         hasMoreAfter,
       },
