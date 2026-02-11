@@ -39,12 +39,15 @@ class AIService {
 
     try {
       // 从数据库获取最近的消息（按时间倒序取，再反转为正序）
+      // 注意：mysql2 execute (prepared statement) 中 LIMIT ? 可能不支持参数化
+      // limit 是内部常量，非用户输入，直接拼接安全
+      const safeLimit = Math.max(1, Math.min(parseInt(limit, 10) || 20, 100));
       const [messages] = await getPool().execute(
         `SELECT role, content FROM messages 
          WHERE conversation_id = ? 
          ORDER BY created_at DESC 
-         LIMIT ?`,
-        [conversationId, limit]
+         LIMIT ${safeLimit}`,
+        [conversationId]
       );
 
       // 反转为正序（从旧到新）
@@ -137,7 +140,7 @@ class AIService {
       }
 
       // 历史记录已经保存到数据库（由 chat.js 调用 messageService），无需再内存存储
-      onComplete?.(fullResponse);
+      await onComplete?.(fullResponse);
 
       return fullResponse;
     } catch (error) {
