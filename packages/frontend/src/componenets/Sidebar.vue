@@ -44,15 +44,22 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { chatAPI } from '../api/chat.js'
+import { Conversation } from '../models/Conversation.js'
 
 const props = defineProps({
   isLoggedIn: Boolean
 })
 
-const emit = defineEmits(['newChat', 'switchConversation', 'conversationLoaded', 'conversationDeleted'])
+const emit = defineEmits(['newChat', 'switchConversation', 'conversationInit', 'conversationCached', 'conversationDeleted'])
 
 const conversationList = ref([])
 const currentConversationId = ref(null)
+
+// 消息缓存：key 为 conversationId，value 为 { updatedAt, messages, pagination }
+const messagesCache = new Map()
+
+// 临时保存最近一次 getConversationInfo 拿到的 updatedAt
+let lastFetchedUpdatedAt = ''
 
 // 编辑状态
 const editingId = ref(null)
@@ -111,21 +118,36 @@ const cancelEdit = () => {
 const loadConversationList = async () => {
   if (!props.isLoggedIn) return
   try {
-    conversationList.value = await chatAPI.conversations.getConversations()
+    const rawList = await chatAPI.conversations.getConversations()
+    conversationList.value = rawList.map(conv => Conversation.fromServer(conv))
   } catch (e) {
     console.error('加载会话列表失败:', e)
   }
 }
 
-// 加载指定会话
+// 加载指定会话（带缓存对比）
 const loadConversation = async (convId) => {
   try {
-    const conv = await chatAPI.conversations.getConversation(convId)
-    if (conv && conv.messages) {
+    // 轻量请求：只拉取该会话的元信息（不含消息）
+    const convInfo = await chatAPI.conversations.getConversationInfo(convId)
+    if (!convInfo) return
+
+    const serverUpdatedAt = convInfo.updated_at
+
+    // 检查缓存是否命中：updatedAt 相同则直接使用缓存
+    const cached = messagesCache.get(convId)
+    if (cached && serverUpdatedAt && cached.updatedAt === serverUpdatedAt) {
       chatAPI.setConversation(convId)
       currentConversationId.value = convId
-      emit('conversationLoaded', conv.messages)
+      emit('conversationCached', { messages: cached.messages, pagination: cached.pagination })
+      return
     }
+
+    // 缓存未命中或 updatedAt 不同，通知 ChatArea 用分页接口加载
+    chatAPI.setConversation(convId)
+    currentConversationId.value = convId
+    lastFetchedUpdatedAt = serverUpdatedAt
+    emit('conversationInit', convId)
   } catch (e) {
     console.error('加载会话失败:', e)
   }
@@ -144,6 +166,7 @@ const loadLatestConversation = async () => {
 const handleSwitch = async (convId) => {
   if (editingId.value) return // 编辑中不切换
   if (convId === currentConversationId.value) return
+
   await loadConversation(convId)
   emit('switchConversation', convId)
 }
@@ -158,6 +181,9 @@ const handleDelete = async (convId) => {
     if (index !== -1) {
       conversationList.value.splice(index, 1)
     }
+
+    // 清除缓存
+    messagesCache.delete(convId)
     
     // 如果删除的是当前会话
     if (convId === currentConversationId.value) {
@@ -189,6 +215,19 @@ const refreshAndSetCurrent = async () => {
   if (!currentConversationId.value && chatAPI.conversationId) {
     currentConversationId.value = chatAPI.conversationId
   }
+  // 当前会话有新消息，清除其缓存以便下次切换回来时重新拉取
+  if (currentConversationId.value) {
+    messagesCache.delete(currentConversationId.value)
+  }
+}
+
+// 更新消息缓存（供外部在分页加载完成后调用）
+const updateMessagesCache = (convId, data) => {
+  messagesCache.set(convId, {
+    updatedAt: lastFetchedUpdatedAt,
+    messages: data.messages,
+    pagination: data.pagination,
+  })
 }
 
 // 重置状态
@@ -196,6 +235,7 @@ const reset = () => {
   conversationList.value = []
   currentConversationId.value = null
   editingId.value = null
+  messagesCache.clear()
 }
 
 // 监听登录状态变化
@@ -216,6 +256,7 @@ onMounted(() => {
 // 暴露方法给父组件
 defineExpose({
   refreshAndSetCurrent,
+  updateMessagesCache,
   reset,
   loadConversationList
 })

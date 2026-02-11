@@ -31,6 +31,17 @@ export const messageService = {
   },
 
   /**
+   * 获取会话元信息（不含消息）
+   */
+  async getConversationInfo(conversationId, userId) {
+    const [rows] = await getPool().execute(
+      'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
+      [conversationId, userId]
+    );
+    return rows.length > 0 ? rows[0] : null;
+  },
+
+  /**
    * 获取会话详情（包含消息）
    */
   async getConversationWithMessages(conversationId, userId) {

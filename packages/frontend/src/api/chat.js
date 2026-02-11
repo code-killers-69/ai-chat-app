@@ -87,6 +87,15 @@ class ConversationAPI {
     return data.data;
   }
 
+  async getConversationInfo(id) {
+    const res = await fetch(`${API_BASE}/conversations/${id}/info`, {
+      headers: this.auth.getHeaders()
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  }
+
   async createConversation(title) {
     const res = await fetch(`${API_BASE}/conversations`, {
       method: 'POST',
@@ -115,6 +124,28 @@ class ConversationAPI {
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
+  }
+
+  /**
+   * 分页获取会话消息
+   * @param {string} id - 会话ID
+   * @param {object} options
+   * @param {number} [options.limit] - 每页数量
+   * @param {string} [options.before] - 获取此消息之前的（更早的）
+   * @param {string} [options.after] - 获取此消息之后的（更新的）
+   */
+  async getMessagesPaginated(id, options = {}) {
+    const params = new URLSearchParams();
+    if (options.limit) params.set('limit', options.limit);
+    if (options.before) params.set('before', options.before);
+    if (options.after) params.set('after', options.after);
+    const qs = params.toString();
+    const res = await fetch(`${API_BASE}/conversations/${id}/messages${qs ? '?' + qs : ''}`, {
+      headers: this.auth.getHeaders()
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.data;
   }
 }
 

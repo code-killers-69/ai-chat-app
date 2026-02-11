@@ -36,6 +36,27 @@ conversationRouter.post('/', async (req, res) => {
 });
 
 /**
+ * 获取会话元信息（不含消息）
+ * GET /api/conversations/:id/info
+ */
+conversationRouter.get('/:id/info', async (req, res) => {
+  try {
+    const conversation = await messageService.getConversationInfo(
+      req.params.id,
+      req.user.userId
+    );
+    
+    if (!conversation) {
+      return res.status(404).json({ success: false, error: '会话不存在' });
+    }
+    
+    res.json({ success: true, data: conversation });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * 获取会话详情（包含消息）
  * GET /api/conversations/:id
  */

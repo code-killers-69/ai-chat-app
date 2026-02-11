@@ -4,7 +4,8 @@
       ref="sidebarRef"
       :is-logged-in="isLoggedIn"
       @new-chat="handleNewChat"
-      @conversation-loaded="handleConversationLoaded"
+      @conversation-init="handleConversationInit"
+      @conversation-cached="handleConversationCached"
       @conversation-deleted="handleConversationDeleted"
     />
     
@@ -58,9 +59,18 @@ const handleNewChat = () => {
   chatAreaRef.value?.clearMessages()
 }
 
-// 会话加载完成
-const handleConversationLoaded = (messages) => {
-  chatAreaRef.value?.loadMessages(messages)
+// 会话需要从服务器初始化加载（缓存未命中）
+const handleConversationInit = async (convId) => {
+  const result = await chatAreaRef.value?.initMessages(convId)
+  // 加载完成后更新 Sidebar 缓存
+  if (result) {
+    sidebarRef.value?.updateMessagesCache(convId, result)
+  }
+}
+
+// 会话从缓存加载（缓存命中）
+const handleConversationCached = ({ messages, pagination }) => {
+  chatAreaRef.value?.loadFromCache(messages, pagination)
 }
 
 // 新会话创建后刷新侧边栏
