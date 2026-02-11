@@ -9,8 +9,11 @@ class AuthAPI {
     this.user = JSON.parse(localStorage.getItem('chat_user') || 'null');
   }
 
-  getHeaders() {
-    const headers = { 'Content-Type': 'application/json' };
+  getHeaders(includeContentType = true) {
+    const headers = {};
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
@@ -160,51 +163,27 @@ class ChatAPI {
   }
 
   /**
-   * 将图片 URL 转换为 base64
-   */
-  async imageUrlToBase64(url) {
-    if (url.startsWith('blob:')) {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    }
-    
-    if (url.startsWith('data:')) {
-      return url;
-    }
-
-    const response = await fetch(url);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  /**
-   * 流式发送消息
+   * 流式发送消息（multipart/form-data 上传图片）
    */
   async streamMessage({ message, images = [], onChunk, onComplete, onError, onConversationCreated }) {
     try {
-      const base64Images = await Promise.all(
-        images.map(img => this.imageUrlToBase64(img.imageUrl))
-      );
+      const formData = new FormData();
+      formData.append('message', message || '');
+      if (this.conversationId) {
+        formData.append('conversationId', this.conversationId);
+      }
+
+      // 直接把原始 File 对象 append 进去，浏览器自动用 multipart 编码
+      for (const img of images) {
+        if (img.file) {
+          formData.append('images', img.file);
+        }
+      }
 
       const response = await fetch(`${API_BASE}/chat/stream`, {
         method: 'POST',
-        headers: this.auth.getHeaders(),
-        body: JSON.stringify({
-          message,
-          images: base64Images,
-          conversationId: this.conversationId,
-        }),
+        headers: this.auth.getHeaders(false), // 不设置 Content-Type，让浏览器自动加 boundary
+        body: formData,
       });
 
       if (!response.ok) {

@@ -2,12 +2,66 @@ import { aiService } from '../services/ai.js';
 import { messageService } from '../services/message.js';
 
 /**
+ * 统一处理图片：同时兼容 multipart 上传和 JSON base64 两种方式
+ *
+ * - multipart：图片在 req.files（multer memoryStorage 解析的 Buffer）
+ * - JSON：图片在 req.body.images（base64 data URL 字符串数组）
+ *
+ * 无论哪种方式，都返回统一格式：
+ * @param {Object} req - Express 请求对象
+ * @returns {{ imageDataList: Array, base64Images: Array }}
+ *   - imageDataList: 用于存储服务（Buffer/string + 元数据）
+ *   - base64Images: 用于 AI 接口（data URL 字符串）
+ */
+function extractImages(req) {
+  const imageDataList = [];
+  const base64Images = [];
+
+  // 优先使用 multipart 上传的文件（新方式）
+  if (req.files && req.files.length > 0) {
+    for (const file of req.files) {
+      imageDataList.push({
+        data: file.buffer,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+      });
+      const base64 = file.buffer.toString('base64');
+      base64Images.push(`data:${file.mimetype};base64,${base64}`);
+    }
+    return { imageDataList, base64Images };
+  }
+
+  // 兼容旧方式：JSON body 里的 base64 图片数组
+  const bodyImages = req.body?.images;
+  if (Array.isArray(bodyImages) && bodyImages.length > 0) {
+    for (const dataUrl of bodyImages) {
+      if (typeof dataUrl !== 'string') continue;
+
+      // data URL 直接给 AI 接口用
+      base64Images.push(dataUrl);
+
+      // 解析 mime 类型，交给存储服务（storageService.saveImage 支持 base64 string）
+      const mimeMatch = dataUrl.match(/^data:(image\/\w+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      imageDataList.push({
+        data: dataUrl,            // storage.saveImage 会自动处理 base64 string
+        originalName: 'image.jpg',
+        mimeType,
+      });
+    }
+  }
+
+  return { imageDataList, base64Images };
+}
+
+/**
  * 流式聊天（SSE）
  * 支持匿名和登录用户，登录用户自动持久化会话和消息
  */
 export async function streamChat(req, res) {
-  const { message, images = [], conversationId } = req.body;
+  const { message, conversationId } = req.body;
   const userId = req.user?.userId;
+  const { imageDataList, base64Images } = extractImages(req);
 
   // 设置 SSE 头
   res.setHeader('Content-Type', 'text/event-stream');
@@ -21,16 +75,10 @@ export async function streamChat(req, res) {
     // 如果用户已登录，进行持久化
     if (userId) {
       if (!dbConversationId) {
-        const conv = await messageService.createConversation(userId, message.slice(0, 50) || '新对话');
+        const conv = await messageService.createConversation(userId, (message || '').slice(0, 50) || '新对话');
         dbConversationId = conv.id;
         res.write(`data: ${JSON.stringify({ type: 'conversation', conversationId: dbConversationId })}\n\n`);
       }
-
-      const imageDataList = images.map((img, idx) => ({
-        data: img,
-        originalName: `image_${idx}.jpg`,
-        mimeType: img.startsWith('data:image/png') ? 'image/png' : 'image/jpeg'
-      }));
 
       await messageService.saveUserMessage(dbConversationId, message, imageDataList);
     }
@@ -41,7 +89,7 @@ export async function streamChat(req, res) {
       conversationId: dbConversationId || 'anonymous',
       userId: userId || 'anonymous',
       message,
-      images,
+      images: base64Images, // AI 接口需要 base64 data URL
       onChunk: (chunk) => {
         fullResponse += chunk;
         res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
@@ -65,23 +113,18 @@ export async function streamChat(req, res) {
  * 普通聊天（非流式）
  */
 export async function sendMessage(req, res) {
-  const { message, images = [], conversationId } = req.body;
+  const { message, conversationId } = req.body;
   const userId = req.user?.userId;
+  const { imageDataList, base64Images } = extractImages(req);
 
   try {
     let dbConversationId = conversationId;
 
     if (userId) {
       if (!dbConversationId) {
-        const conv = await messageService.createConversation(userId, message.slice(0, 50) || '新对话');
+        const conv = await messageService.createConversation(userId, (message || '').slice(0, 50) || '新对话');
         dbConversationId = conv.id;
       }
-
-      const imageDataList = images.map((img, idx) => ({
-        data: img,
-        originalName: `image_${idx}.jpg`,
-        mimeType: img.startsWith('data:image/png') ? 'image/png' : 'image/jpeg'
-      }));
 
       await messageService.saveUserMessage(dbConversationId, message, imageDataList);
     }
@@ -92,7 +135,7 @@ export async function sendMessage(req, res) {
       conversationId: dbConversationId || 'anonymous',
       userId: userId || 'anonymous',
       message,
-      images,
+      images: base64Images,
       onChunk: (chunk) => {
         fullResponse += chunk;
       },

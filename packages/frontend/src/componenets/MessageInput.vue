@@ -65,7 +65,7 @@ const handleFileChange = (e) => {
   const files = e.target.files
   if (files.length === 0) return
   for (const file of files) {
-    images.value.push(new MessageImage({ imageUrl: URL.createObjectURL(file) }))
+    images.value.push(new MessageImage({ imageUrl: URL.createObjectURL(file), file }))
   }
 }
 
@@ -74,7 +74,7 @@ const handlePaste = (e) => {
   if (files.length === 0) return
   for (const file of files) {
     if (file.type.startsWith('image/')) {
-      images.value.push(new MessageImage({ imageUrl: URL.createObjectURL(file) }))
+      images.value.push(new MessageImage({ imageUrl: URL.createObjectURL(file), file }))
       e.preventDefault()
     }
   }

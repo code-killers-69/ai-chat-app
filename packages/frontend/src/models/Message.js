@@ -8,12 +8,14 @@ export class MessageImage {
    * @param {string} [options.url] - 图片URL（后端返回的 CDN/COS/本地地址）
    * @param {string} [options.imageUrl] - 图片URL（前端本地 blob URL）
    * @param {string} [options.storageType] - 存储类型：local | cdn | cos
+   * @param {File} [options.file] - 原始 File 对象（用于 multipart 上传）
    */
-  constructor({ id = '', url = '', imageUrl = '', storageType = 'local' } = {}) {
+  constructor({ id = '', url = '', imageUrl = '', storageType = 'local', file = null } = {}) {
     this.id = id;
     this.url = url;
     this.imageUrl = imageUrl;
     this.storageType = storageType;
+    this.file = file;
   }
 
   /**
