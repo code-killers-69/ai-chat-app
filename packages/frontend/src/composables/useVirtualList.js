@@ -241,6 +241,7 @@ export function useVirtualList({
 
     const top = scrollTop.value
     const bottom = top + viewportHeight.value
+    const version = heightVersion.value
     
     let startIdx = binarySearch(top)
     let endIdx = binarySearch(bottom)
@@ -256,6 +257,7 @@ export function useVirtualList({
         data: items.value[i],
         offset: pos[i].offset,
         height: pos[i].height,
+        version,
       }
     }
     return result
@@ -413,10 +415,15 @@ export function useVirtualList({
   }
 
   function scrollToBottom(behavior = 'smooth') {
+    // 先同步更新 scrollTop，让 visibleItems 立即包含底部的新消息
+    const total = totalHeight.value
+    if (total > 0) {
+      scrollTop.value = Math.max(0, total - viewportHeight.value)
+    }
     nextTick(() => {
       if (!scrollContainer.value) return
       scrollContainer.value.scrollTo({
-        top: totalHeight.value,
+        top: total,
         left: 0,
         behavior,
       })

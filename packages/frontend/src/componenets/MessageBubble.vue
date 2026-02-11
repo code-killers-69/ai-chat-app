@@ -1,9 +1,9 @@
 <template>
   <div class="questionTank" :class="[message.role === 'you' ? 'yourStyle' : 'myStyle']">
     <div class="articleArea">
-      <div v-if="message.role === 'you'" class="markdown-body" v-html="renderMarkdown(message.content)"></div>
-      <div v-else class="user-message" v-html="escapeHtml(message.content)"></div>
-      <span v-if="message.isStreaming" class="cursor">|</span>
+      <div v-if="message.role === 'you'" class="markdown-body" v-html="renderMarkdown(content)"></div>
+      <div v-else class="user-message" v-html="escapeHtml(content)"></div>
+      <span v-if="isStreaming" class="cursor">|</span>
     </div>
     <ImageContainer
       v-for="image in message.images"
@@ -28,6 +28,14 @@ defineProps({
   message: {
     type: Object,
     required: true,
+  },
+  content: {
+    type: String,
+    default: '',
+  },
+  isStreaming: {
+    type: Boolean,
+    default: false,
   },
 })
 

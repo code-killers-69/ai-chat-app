@@ -17,7 +17,7 @@
                     class="virtual-item baseAlign"
                     :class="{ yourAlign: item.data.role === 'you', myAlign: item.data.role === 'me' }"
                     :style="{ position: 'absolute', top: item.offset + 'px', width: '100%' }">
-                    <MessageBubble :message="item.data" @image-loaded="onMessageImageLoaded" />
+                    <MessageBubble :message="item.data" :content="item.data.content" :is-streaming="item.data.isStreaming" @image-loaded="onMessageImageLoaded" />
                 </div>
             </div>
         </div>
@@ -142,6 +142,7 @@ const handleSend = async ({ content, images }) => {
             images,
             onChunk: (chunk) => {
                 aiMsg.appendContent(chunk)
+                triggerRef(messages)
                 // 使用 rAF 节流：每帧最多更新一次，避免高频触发抖动
                 if (!chunkRAF) {
                     chunkRAF = requestAnimationFrame(() => {

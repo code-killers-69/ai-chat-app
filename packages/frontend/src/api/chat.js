@@ -163,28 +163,40 @@ class ChatAPI {
   }
 
   /**
-   * 流式发送消息（multipart/form-data 上传图片）
+   * 流式发送消息
+   * - 有图片 → multipart/form-data（二进制直传）
+   * - 无图片 → JSON（兼容老后端）
    */
   async streamMessage({ message, images = [], onChunk, onComplete, onError, onConversationCreated }) {
     try {
-      const formData = new FormData();
-      formData.append('message', message || '');
-      if (this.conversationId) {
-        formData.append('conversationId', this.conversationId);
-      }
+      let response;
 
-      // 直接把原始 File 对象 append 进去，浏览器自动用 multipart 编码
-      for (const img of images) {
-        if (img.file) {
+      if (images.length > 0) {
+        // 有图片：multipart/form-data
+        const formData = new FormData();
+        formData.append('message', message || '');
+        if (this.conversationId) {
+          formData.append('conversationId', this.conversationId);
+        }
+        for (const img of images) {
           formData.append('images', img.file);
         }
+        response = await fetch(`${API_BASE}/chat/stream`, {
+          method: 'POST',
+          headers: this.auth.getHeaders(false),
+          body: formData,
+        });
+      } else {
+        // 无图片：JSON（兼容老后端）
+        response = await fetch(`${API_BASE}/chat/stream`, {
+          method: 'POST',
+          headers: this.auth.getHeaders(),
+          body: JSON.stringify({
+            message,
+            conversationId: this.conversationId,
+          }),
+        });
       }
-
-      const response = await fetch(`${API_BASE}/chat/stream`, {
-        method: 'POST',
-        headers: this.auth.getHeaders(false), // 不设置 Content-Type，让浏览器自动加 boundary
-        body: formData,
-      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
