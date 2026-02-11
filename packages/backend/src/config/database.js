@@ -64,10 +64,15 @@ export async function initDatabase() {
         conversation_id VARCHAR(36) NOT NULL,
         role ENUM('user', 'assistant') NOT NULL,
         content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
       )
     `);
+
+    // 升级：确保 messages.created_at 有毫秒精度（秒级精度会导致同秒消息排序错乱）
+    await connection.execute(
+      `ALTER TABLE messages MODIFY created_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3)`
+    ).catch(() => { /* 已经是 TIMESTAMP(3) 则忽略 */ });
 
     // 图片表
     await connection.execute(`

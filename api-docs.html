@@ -47,9 +47,16 @@
     .warning-title { font-weight: bold; color: #856404; margin-bottom: 5px; }
     .toc { background: white; border-radius: 12px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .toc h3 { margin-bottom: 15px; color: #495057; }
-    .toc ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-    .toc a { color: #667eea; text-decoration: none; padding: 8px 12px; display: block; border-radius: 6px; }
+    .toc-group { margin-bottom: 12px; }
+    .toc-group-title { font-weight: 600; color: #495057; margin-bottom: 6px; font-size: 0.95em; }
+    .toc ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px; }
+    .toc a { color: #667eea; text-decoration: none; padding: 6px 12px; display: block; border-radius: 6px; font-size: 0.9em; }
     .toc a:hover { background: #f8f9fa; }
+    .toc a .method-tag { font-family: monospace; font-size: 0.8em; font-weight: bold; margin-right: 4px; }
+    .toc a .method-tag.get { color: #155724; }
+    .toc a .method-tag.post { color: #004085; }
+    .toc a .method-tag.put { color: #856404; }
+    .toc a .method-tag.delete { color: #721c24; }
     footer { text-align: center; padding: 30px; color: #6c757d; }
   </style>
 </head>
@@ -57,68 +64,76 @@
   <div class="container">
     <header>
       <h1>Chat App API 文档</h1>
-      <p>AI 聊天应用后端接口文档 - 新手友好版</p>
+      <p>AI 聊天应用后端接口文档 &mdash; 共 14 个端点</p>
     </header>
     
     <div class="base-url">
-      <strong>🌐 接口基础地址：</strong> <code>http://scj.dolmo.top:3001</code>
-      <p style="margin-top: 10px; font-size: 0.9em;">所有接口都以此地址为前缀，例如登录接口完整地址为：<code>http://scj.dolmo.top:3001/api/user/login</code></p>
+      <strong>接口基础地址：</strong> <code>http://scj.dolmo.top:3001</code>
+      <p style="margin-top: 8px; font-size: 0.9em;">所有接口以此为前缀，例如：<code>http://scj.dolmo.top:3001/api/user/login</code></p>
     </div>
     
+    <!-- 目录 -->
     <div class="toc">
-      <h3>📑 接口目录</h3>
-      <ul>
-        <li><a href="#auth">🔐 认证说明</a></li>
-        <li><a href="#user-register">用户注册</a></li>
-        <li><a href="#user-login">用户登录</a></li>
-        <li><a href="#user-me">获取用户信息</a></li>
-        <li><a href="#conv-list">获取会话列表</a></li>
-        <li><a href="#conv-create">创建会话</a></li>
-        <li><a href="#conv-detail">获取会话详情</a></li>
-        <li><a href="#conv-update">更新会话标题</a></li>
-        <li><a href="#conv-delete">删除会话</a></li>
-        <li><a href="#conv-messages">分页获取消息</a></li>
-        <li><a href="#chat-stream">流式聊天（推荐）</a></li>
-        <li><a href="#chat-message">普通聊天</a></li>
-        <li><a href="#health">健康检查</a></li>
-      </ul>
-    </div>
-    
-    <!-- 认证说明 -->
-    <div class="section" id="auth">
-      <div class="section-header"><h2>🔐 认证说明</h2></div>
-      <div class="api-item">
-        <div class="api-desc">本系统使用 <strong>JWT (JSON Web Token)</strong> 进行身份认证。登录成功后会返回一个 token，后续请求需要在 HTTP Header 中携带此 token。</div>
-        
-        <h4>认证流程</h4>
-        <ol style="margin-left: 20px; margin-bottom: 20px;">
-          <li>调用登录接口，获取 <code>token</code></li>
-          <li>将 token 保存到本地（如 localStorage）</li>
-          <li>后续请求在 Header 中添加：<code>Authorization: Bearer {token}</code></li>
-        </ol>
-        
-        <h4>请求头示例</h4>
-        <span class="code-label">HTTP Header</span>
-        <pre>Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</pre>
-        
-        <div class="tip">
-          <div class="tip-title">💡 提示</div>
-          注意 Bearer 和 token 之间有一个空格。token 有效期为 7 天，过期后需要重新登录。
-        </div>
-        
-        <h4>认证标识说明</h4>
-        <table class="param-table">
-          <tr><th>标识</th><th>含义</th></tr>
-          <tr><td><span class="auth-required">需要登录</span></td><td>必须携带有效的 token 才能访问</td></tr>
-          <tr><td><span class="auth-optional">可选登录</span></td><td>可以不登录访问，但登录后会有额外功能（如消息持久化）</td></tr>
-          <tr><td><span class="auth-none">无需登录</span></td><td>任何人都可以访问</td></tr>
-        </table>
+      <h3>接口目录</h3>
+      <div class="toc-group">
+        <div class="toc-group-title">认证与用户</div>
+        <ul>
+          <li><a href="#auth">认证说明</a></li>
+          <li><a href="#user-register"><span class="method-tag post">POST</span> 用户注册</a></li>
+          <li><a href="#user-login"><span class="method-tag post">POST</span> 用户登录</a></li>
+          <li><a href="#user-me"><span class="method-tag get">GET</span> 获取用户信息</a></li>
+        </ul>
+      </div>
+      <div class="toc-group">
+        <div class="toc-group-title">会话管理</div>
+        <ul>
+          <li><a href="#conv-list"><span class="method-tag get">GET</span> 会话列表</a></li>
+          <li><a href="#conv-create"><span class="method-tag post">POST</span> 创建会话</a></li>
+          <li><a href="#conv-info"><span class="method-tag get">GET</span> 会话元信息</a></li>
+          <li><a href="#conv-detail"><span class="method-tag get">GET</span> 会话详情</a></li>
+          <li><a href="#conv-update"><span class="method-tag put">PUT</span> 更新会话标题</a></li>
+          <li><a href="#conv-delete"><span class="method-tag delete">DELETE</span> 删除会话</a></li>
+          <li><a href="#conv-messages"><span class="method-tag get">GET</span> 分页获取消息</a></li>
+        </ul>
+      </div>
+      <div class="toc-group">
+        <div class="toc-group-title">聊天与系统</div>
+        <ul>
+          <li><a href="#chat-stream"><span class="method-tag post">POST</span> 流式聊天（SSE）</a></li>
+          <li><a href="#chat-message"><span class="method-tag post">POST</span> 普通聊天</a></li>
+          <li><a href="#health"><span class="method-tag get">GET</span> 健康检查</a></li>
+        </ul>
       </div>
     </div>
     
-    <!-- 用户相关接口 -->
+    <!-- ==================== 认证说明 ==================== -->
+    <div class="section" id="auth">
+      <div class="section-header"><h2>认证说明</h2></div>
+      <div class="api-item">
+        <div class="api-desc">使用 <strong>JWT (JSON Web Token)</strong> 认证。登录后获取 token，后续请求在 Header 中携带。</div>
+        
+        <h4>请求头格式</h4>
+        <span class="code-label">HTTP Header</span>
+        <pre>Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</pre>
+        
+        <h4>三种认证级别</h4>
+        <table class="param-table">
+          <tr><th>标识</th><th>含义</th><th>缺少 token 时</th></tr>
+          <tr><td><span class="auth-required">需要登录</span></td><td>必须携带有效 token</td><td>返回 401</td></tr>
+          <tr><td><span class="auth-optional">可选登录</span></td><td>有 token 则解析用户，无 token 也放行</td><td>以匿名身份访问（消息不持久化）</td></tr>
+          <tr><td><span class="auth-none">无需登录</span></td><td>不检查 token</td><td>正常访问</td></tr>
+        </table>
+        
+        <div class="tip">
+          <div class="tip-title">Token 有效期</div>
+          7 天。过期后需重新登录。
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==================== 用户相关 ==================== -->
     <div class="section">
-      <div class="section-header"><h2>👤 用户相关接口</h2></div>
+      <div class="section-header"><h2>用户相关接口</h2></div>
       
       <!-- 注册 -->
       <div class="api-item" id="user-register">
@@ -127,28 +142,24 @@
           <span class="endpoint">/api/user/register</span>
           <span class="auth-badge auth-none">无需登录</span>
         </div>
-        <div class="api-desc">创建新用户账号。注册成功后需要调用登录接口获取 token。</div>
+        <div class="api-desc">创建新用户账号。注册成功后需调用登录接口获取 token。</div>
         
         <h4>请求参数 (Body - JSON)</h4>
         <table class="param-table">
           <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>username</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户名，3-50 个字符，需唯一</td></tr>
+          <tr><td>username</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户名，3-50 字符，需唯一</td></tr>
           <tr><td>password</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>密码，至少 6 位</td></tr>
-          <tr><td>nickname</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>昵称，用于显示</td></tr>
+          <tr><td>nickname</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>显示昵称</td></tr>
         </table>
         
         <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const response = await fetch('http://scj.dolmo.top:3001/api/user/register', {
+        <span class="code-label">JavaScript</span>
+<pre>const res = await fetch('/api/user/register', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    username: 'zhangsan',
-    password: '123456',
-    nickname: '张三'
-  })
+  body: JSON.stringify({ username: 'zhangsan', password: '123456', nickname: '张三' })
 });
-const data = await response.json();</pre>
+const data = await res.json();</pre>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -162,11 +173,11 @@ const data = await response.json();</pre>
 }</pre>
         
         <h4>错误响应</h4>
-        <span class="code-label">JSON</span>
-<pre>{
-  "success": false,
-  "error": "用户名已存在"
-}</pre>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>400</td><td>用户名和密码为必填项</td><td>缺少参数</td></tr>
+          <tr><td>400</td><td>用户名已存在</td><td>重复注册</td></tr>
+        </table>
       </div>
       
       <!-- 登录 -->
@@ -176,7 +187,7 @@ const data = await response.json();</pre>
           <span class="endpoint">/api/user/login</span>
           <span class="auth-badge auth-none">无需登录</span>
         </div>
-        <div class="api-desc">用户登录，成功后返回 token 和用户信息。<strong>请妥善保存返回的 token！</strong></div>
+        <div class="api-desc">用户登录，返回 token 和用户信息。</div>
         
         <h4>请求参数 (Body - JSON)</h4>
         <table class="param-table">
@@ -184,24 +195,6 @@ const data = await response.json();</pre>
           <tr><td>username</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户名</td></tr>
           <tr><td>password</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>密码</td></tr>
         </table>
-        
-        <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const response = await fetch('http://scj.dolmo.top:3001/api/user/login', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    username: 'zhangsan',
-    password: '123456'
-  })
-});
-const data = await response.json();
-
-// 保存 token 到本地存储
-if (data.success) {
-  localStorage.setItem('token', data.data.token);
-  localStorage.setItem('user', JSON.stringify(data.data.user));
-}</pre>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -217,9 +210,15 @@ if (data.success) {
   }
 }</pre>
         
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>401</td><td>用户名或密码错误</td><td>凭据不匹配</td></tr>
+        </table>
+        
         <div class="warning">
-          <div class="warning-title">⚠️ 重要</div>
-          token 有效期为 7 天。请将 token 保存到 localStorage，后续所有需要登录的接口都要用到它。
+          <div class="warning-title">重要</div>
+          请将 token 保存到 localStorage，后续所有需要登录的接口都要用到。
         </div>
       </div>
       
@@ -230,15 +229,7 @@ if (data.success) {
           <span class="endpoint">/api/user/me</span>
           <span class="auth-badge auth-required">需要登录</span>
         </div>
-        <div class="api-desc">获取当前登录用户的详细信息。可用于验证 token 是否有效。</div>
-        
-        <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const token = localStorage.getItem('token');
-const response = await fetch('http://scj.dolmo.top:3001/api/user/me', {
-  headers: { 'Authorization': `Bearer ${token}` }
-});
-const data = await response.json();</pre>
+        <div class="api-desc">获取当前登录用户的信息，可用于验证 token 是否有效。</div>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -254,9 +245,9 @@ const data = await response.json();</pre>
       </div>
     </div>
     
-    <!-- 会话相关接口 -->
+    <!-- ==================== 会话相关 ==================== -->
     <div class="section">
-      <div class="section-header"><h2>💬 会话相关接口</h2></div>
+      <div class="section-header"><h2>会话相关接口</h2></div>
       
       <!-- 获取会话列表 -->
       <div class="api-item" id="conv-list">
@@ -265,15 +256,7 @@ const data = await response.json();</pre>
           <span class="endpoint">/api/conversations</span>
           <span class="auth-badge auth-required">需要登录</span>
         </div>
-        <div class="api-desc">获取当前用户的所有会话列表，按更新时间倒序排列（最新的在前面）。</div>
-        
-        <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const token = localStorage.getItem('token');
-const response = await fetch('http://scj.dolmo.top:3001/api/conversations', {
-  headers: { 'Authorization': `Bearer ${token}` }
-});
-const data = await response.json();</pre>
+        <div class="api-desc">获取当前用户的所有会话列表，按更新时间倒序排列。</div>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -282,18 +265,23 @@ const data = await response.json();</pre>
   "data": [
     {
       "id": "conv-uuid-1",
+      "user_id": "user-uuid",
       "title": "关于 Vue3 的问题",
       "created_at": "2024-01-15T10:00:00.000Z",
-      "updated_at": "2024-01-15T10:30:00.000Z"
-    },
-    {
-      "id": "conv-uuid-2",
-      "title": "新对话",
-      "created_at": "2024-01-14T09:00:00.000Z",
-      "updated_at": "2024-01-14T09:15:00.000Z"
+      "updated_at": "2024-01-15T10:30:00.000Z",
+      "last_message": "Vue3 相比 Vue2 有很多改进..."
     }
   ]
 }</pre>
+        
+        <h4>响应字段说明</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">string</span></td><td>会话 ID（UUID）</td></tr>
+          <tr><td>title</td><td><span class="type">string</span></td><td>会话标题</td></tr>
+          <tr><td>last_message</td><td><span class="type">string|null</span></td><td>最后一条消息内容，无消息时为 null</td></tr>
+          <tr><td>updated_at</td><td><span class="type">string</span></td><td>最后更新时间（ISO 8601）</td></tr>
+        </table>
       </div>
       
       <!-- 创建会话 -->
@@ -303,12 +291,12 @@ const data = await response.json();</pre>
           <span class="endpoint">/api/conversations</span>
           <span class="auth-badge auth-required">需要登录</span>
         </div>
-        <div class="api-desc">手动创建一个新会话。<strong>注意：</strong>通常不需要调用此接口，发送第一条消息时会自动创建会话。</div>
+        <div class="api-desc">手动创建新会话。通常不需要调用此接口——发送第一条消息时会自动创建。</div>
         
         <h4>请求参数 (Body - JSON)</h4>
         <table class="param-table">
           <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>title</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话标题，默认为"新对话"</td></tr>
+          <tr><td>title</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话标题，默认"新对话"</td></tr>
         </table>
         
         <h4>成功响应</h4>
@@ -317,10 +305,46 @@ const data = await response.json();</pre>
   "success": true,
   "data": {
     "id": "conv-uuid-new",
+    "userId": "user-uuid",
     "title": "新对话",
-    "created_at": "2024-01-15T11:00:00.000Z"
+    "createdAt": "2024-01-15T11:00:00.000Z"
   }
 }</pre>
+      </div>
+      
+      <!-- 获取会话元信息 -->
+      <div class="api-item" id="conv-info">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/conversations/:id/info</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">获取会话的元信息（不含消息列表）。适用于只需要会话标题等基本信息的场景，比获取完整详情更轻量。</div>
+        
+        <h4>路径参数</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">string</span></td><td>会话 ID</td></tr>
+        </table>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "id": "conv-uuid-1",
+    "user_id": "user-uuid",
+    "title": "关于 Vue3 的问题",
+    "created_at": "2024-01-15T10:00:00.000Z",
+    "updated_at": "2024-01-15T10:30:00.000Z"
+  }
+}</pre>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>404</td><td>会话不存在</td><td>ID 无效或不属于当前用户</td></tr>
+        </table>
       </div>
       
       <!-- 获取会话详情 -->
@@ -330,7 +354,7 @@ const data = await response.json();</pre>
           <span class="endpoint">/api/conversations/:id</span>
           <span class="auth-badge auth-required">需要登录</span>
         </div>
-        <div class="api-desc">获取指定会话的详细信息，包含该会话的所有聊天消息。</div>
+        <div class="api-desc">获取会话详情，包含该会话的<strong>所有</strong>聊天消息。消息较多时建议使用分页接口。</div>
         
         <h4>路径参数</h4>
         <table class="param-table">
@@ -338,25 +362,20 @@ const data = await response.json();</pre>
           <tr><td>id</td><td><span class="type">string</span></td><td>会话 ID</td></tr>
         </table>
         
-        <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const conversationId = 'conv-uuid-1';
-const token = localStorage.getItem('token');
-const response = await fetch(`http://scj.dolmo.top:3001/api/conversations/${conversationId}`, {
-  headers: { 'Authorization': `Bearer ${token}` }
-});
-const data = await response.json();</pre>
-        
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
 <pre>{
   "success": true,
   "data": {
     "id": "conv-uuid-1",
+    "user_id": "user-uuid",
     "title": "关于 Vue3 的问题",
+    "created_at": "2024-01-15T10:00:00.000Z",
+    "updated_at": "2024-01-15T10:30:00.000Z",
     "messages": [
       {
         "id": "msg-uuid-1",
+        "conversation_id": "conv-uuid-1",
         "role": "user",
         "content": "Vue3 和 Vue2 有什么区别？",
         "created_at": "2024-01-15T10:00:00.000Z",
@@ -364,19 +383,29 @@ const data = await response.json();</pre>
       },
       {
         "id": "msg-uuid-2",
+        "conversation_id": "conv-uuid-1",
         "role": "assistant",
         "content": "Vue3 相比 Vue2 有很多改进...",
-        "created_at": "2024-01-15T10:00:05.000Z",
+        "created_at": "2024-01-15T10:00:02.500Z",
         "images": []
       }
     ]
   }
 }</pre>
         
-        <div class="tip">
-          <div class="tip-title">💡 消息角色说明</div>
-          <code>role: "user"</code> - 用户发送的消息；<code>role: "assistant"</code> - AI 回复的消息
-        </div>
+        <h4>消息字段说明</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>role</td><td><span class="type">"user" | "assistant"</span></td><td>消息角色</td></tr>
+          <tr><td>content</td><td><span class="type">string</span></td><td>消息文本内容</td></tr>
+          <tr><td>images</td><td><span class="type">array</span></td><td>关联图片列表，每项含 id、url、storageType</td></tr>
+        </table>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>404</td><td>会话不存在</td><td>ID 无效或不属于当前用户</td></tr>
+        </table>
       </div>
       
       <!-- 更新会话标题 -->
@@ -388,29 +417,27 @@ const data = await response.json();</pre>
         </div>
         <div class="api-desc">更新指定会话的标题。</div>
         
+        <h4>路径参数</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">string</span></td><td>会话 ID</td></tr>
+        </table>
+        
         <h4>请求参数 (Body - JSON)</h4>
         <table class="param-table">
           <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
           <tr><td>title</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>新的会话标题</td></tr>
         </table>
         
-        <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const conversationId = 'conv-uuid-1';
-const token = localStorage.getItem('token');
-const response = await fetch(`http://scj.dolmo.top:3001/api/conversations/${conversationId}`, {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify({ title: 'Vue3 学习笔记' })
-});
-const data = await response.json();</pre>
-        
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
 <pre>{ "success": true }</pre>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>400</td><td>标题不能为空</td><td>未传 title 参数</td></tr>
+        </table>
       </div>
       
       <!-- 删除会话 -->
@@ -420,17 +447,13 @@ const data = await response.json();</pre>
           <span class="endpoint">/api/conversations/:id</span>
           <span class="auth-badge auth-required">需要登录</span>
         </div>
-        <div class="api-desc">删除指定会话及其所有消息。<strong>此操作不可恢复！</strong></div>
+        <div class="api-desc">删除指定会话，<strong>级联删除</strong>该会话下的所有消息和关联图片文件。此操作不可恢复。</div>
         
-        <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const conversationId = 'conv-uuid-1';
-const token = localStorage.getItem('token');
-const response = await fetch(`http://scj.dolmo.top:3001/api/conversations/${conversationId}`, {
-  method: 'DELETE',
-  headers: { 'Authorization': `Bearer ${token}` }
-});
-const data = await response.json();</pre>
+        <h4>路径参数</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">string</span></td><td>会话 ID</td></tr>
+        </table>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -444,7 +467,7 @@ const data = await response.json();</pre>
           <span class="endpoint">/api/conversations/:id/messages</span>
           <span class="auth-badge auth-required">需要登录</span>
         </div>
-        <div class="api-desc">分页获取指定会话的消息。适用于消息较多时按需加载，支持向上滚动加载更早的消息。</div>
+        <div class="api-desc">分页获取指定会话的消息。支持基于游标的前后翻页，适用于消息量大时按需加载。</div>
         
         <h4>路径参数</h4>
         <table class="param-table">
@@ -455,37 +478,18 @@ const data = await response.json();</pre>
         <h4>Query 参数</h4>
         <table class="param-table">
           <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>limit</td><td><span class="type">number</span></td><td><span class="optional">否</span></td><td>每页数量，默认 20</td></tr>
-          <tr><td>before</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>消息 ID，获取此消息之前（更早）的消息，用于向上滚动加载</td></tr>
-          <tr><td>after</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>消息 ID，获取此消息之后（更新）的消息</td></tr>
+          <tr><td>limit</td><td><span class="type">number</span></td><td><span class="optional">否</span></td><td>每页数量，默认 20，最大 100</td></tr>
+          <tr><td>before</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>消息 ID，获取该消息<strong>之前</strong>（更早）的记录</td></tr>
+          <tr><td>after</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>消息 ID，获取该消息<strong>之后</strong>（更新）的记录</td></tr>
         </table>
         
-        <h4>使用场景</h4>
+        <h4>典型用法</h4>
         <table class="param-table">
-          <tr><th>场景</th><th>请求方式</th></tr>
-          <tr><td>首次加载最新消息</td><td><code>GET /api/conversations/:id/messages</code></td></tr>
-          <tr><td>向上滚动加载更早的</td><td><code>GET /api/conversations/:id/messages?before=第一条消息ID&limit=20</code></td></tr>
-          <tr><td>加载更新的消息</td><td><code>GET /api/conversations/:id/messages?after=最后一条消息ID</code></td></tr>
+          <tr><th>场景</th><th>请求</th></tr>
+          <tr><td>首次加载（最新 20 条）</td><td><code>GET /api/conversations/:id/messages</code></td></tr>
+          <tr><td>向上滚动加载更早的</td><td><code>GET /api/conversations/:id/messages?before={firstMsgId}&limit=20</code></td></tr>
+          <tr><td>加载更新的消息</td><td><code>GET /api/conversations/:id/messages?after={lastMsgId}</code></td></tr>
         </table>
-        
-        <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const conversationId = 'conv-uuid-1';
-const token = localStorage.getItem('token');
-
-// 首次加载最新 20 条
-const response = await fetch(`http://scj.dolmo.top:3001/api/conversations/${conversationId}/messages`, {
-  headers: { 'Authorization': `Bearer ${token}` }
-});
-const data = await response.json();
-
-// 向上滚动，加载更早的消息
-const firstMessageId = data.data.messages[0].id;
-const olderResponse = await fetch(
-  `http://scj.dolmo.top:3001/api/conversations/${conversationId}/messages?before=${firstMessageId}&limit=20`,
-  { headers: { 'Authorization': `Bearer ${token}` } }
-);
-const olderData = await olderResponse.json();</pre>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -505,13 +509,6 @@ const olderData = await olderResponse.json();</pre>
         "content": "Vue3 和 Vue2 有什么区别？",
         "created_at": "2024-01-15T10:00:00.000Z",
         "images": []
-      },
-      {
-        "id": "msg-uuid-2",
-        "role": "assistant",
-        "content": "Vue3 相比 Vue2 有很多改进...",
-        "created_at": "2024-01-15T10:00:05.000Z",
-        "images": []
       }
     ],
     "pagination": {
@@ -523,18 +520,26 @@ const olderData = await olderResponse.json();</pre>
   }
 }</pre>
         
-        <div class="tip">
-          <div class="tip-title">💡 分页字段说明</div>
-          <code>total</code> - 该会话消息总数<br>
-          <code>hasMoreBefore</code> - 是否还有更早的消息（用于判断是否显示"加载更多"）<br>
-          <code>hasMoreAfter</code> - 是否还有更新的消息
-        </div>
+        <h4>分页字段说明</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>total</td><td><span class="type">number</span></td><td>该会话消息总数</td></tr>
+          <tr><td>limit</td><td><span class="type">number</span></td><td>本次请求的 limit 值</td></tr>
+          <tr><td>hasMoreBefore</td><td><span class="type">boolean</span></td><td>是否还有更早的消息</td></tr>
+          <tr><td>hasMoreAfter</td><td><span class="type">boolean</span></td><td>是否还有更新的消息</td></tr>
+        </table>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>404</td><td>会话不存在</td><td>ID 无效或不属于当前用户</td></tr>
+        </table>
       </div>
     </div>
     
-    <!-- 聊天相关接口 -->
+    <!-- ==================== 聊天相关 ==================== -->
     <div class="section">
-      <div class="section-header"><h2>🤖 聊天相关接口</h2></div>
+      <div class="section-header"><h2>聊天相关接口</h2></div>
       
       <!-- 流式聊天 -->
       <div class="api-item" id="chat-stream">
@@ -543,59 +548,110 @@ const olderData = await olderResponse.json();</pre>
           <span class="endpoint">/api/chat/stream</span>
           <span class="auth-badge auth-optional">可选登录</span>
         </div>
-        <div class="api-desc"><strong>⭐ 推荐使用！</strong>流式聊天接口，AI 回复会实时逐字返回，用户体验更好。使用 Server-Sent Events (SSE) 技术。</div>
+        <div class="api-desc"><strong>推荐使用。</strong>流式聊天接口，AI 回复通过 SSE (Server-Sent Events) 逐字返回。支持纯文本和带图片两种请求方式。</div>
         
-        <h4>请求参数 (Body - JSON)</h4>
+        <h4>请求方式一：纯文本（JSON）</h4>
+        <table class="param-table">
+          <tr><th>Header</th><th colspan="3">Content-Type: application/json</th></tr>
+        </table>
         <table class="param-table">
           <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户发送的消息内容</td></tr>
-          <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID，不传则创建新会话（仅登录用户有效）</td></tr>
-          <tr><td>images</td><td><span class="type">array</span></td><td><span class="optional">否</span></td><td>图片数组，每项为 Base64 编码的图片数据</td></tr>
+          <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
+          <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID，不传则自动创建新会话（限登录用户）</td></tr>
         </table>
+        <span class="code-label">JavaScript</span>
+<pre>const res = await fetch('/api/chat/stream', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({ message: '你好', conversationId })
+});</pre>
         
-        <h4>响应格式说明（SSE 事件流）</h4>
-        <p style="margin-bottom: 15px; color: #666;">响应是一个 SSE 事件流，每个事件格式为 <code>data: {JSON}\n\n</code>，事件按以下顺序返回：</p>
+        <h4>请求方式二：带图片 — JSON base64（适合少量小图）</h4>
+        <table class="param-table">
+          <tr><th>Header</th><th colspan="3">Content-Type: application/json</th></tr>
+        </table>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
+          <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
+          <tr><td>images</td><td><span class="type">string[]</span></td><td><span class="optional">否</span></td><td>base64 data URL 数组，格式：<code>data:image/jpeg;base64,/9j/4AAQ...</code><br>支持格式：JPEG、PNG、GIF、WebP</td></tr>
+        </table>
+        <span class="code-label">JavaScript</span>
+<pre>const res = await fetch('/api/chat/stream', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    message: '这张图片是什么？',
+    conversationId,
+    images: ['data:image/jpeg;base64,/9j/4AAQ...']  // base64 data URL
+  })
+});</pre>
         
-        <div class="tip" style="background: #f8f9fa; border-color: #dee2e6;">
-          <div class="tip-title">📤 事件流结构（按顺序）</div>
-          <ol style="margin-left: 20px; margin-top: 10px;">
-            <li><strong>conversation</strong> - 首次发送消息时返回，包含新创建的会话 ID（已有会话时不返回）</li>
-            <li><strong>chunk</strong> - AI 回复过程中持续返回，每次返回一小段文字（可能有很多个）</li>
-            <li><strong>done</strong> - AI 回复完成时返回，包含完整回复内容</li>
-            <li><strong>error</strong> - 发生错误时返回（替代 done）</li>
-          </ol>
+        <h4>请求方式三：带图片 — multipart/form-data（适合大图/多图）</h4>
+        <table class="param-table">
+          <tr><th>Header</th><th colspan="3">Content-Type: multipart/form-data（fetch 使用 FormData 时自动设置）</th></tr>
+        </table>
+        <table class="param-table">
+          <tr><th>字段名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>message</td><td><span class="type">text</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
+          <tr><td>conversationId</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
+          <tr><td>images</td><td><span class="type">file</span></td><td><span class="optional">否</span></td><td>图片文件，最多 10 张，单张不超过 10MB<br>支持格式：JPEG、PNG、GIF、WebP</td></tr>
+        </table>
+        <span class="code-label">JavaScript</span>
+<pre>const formData = new FormData();
+formData.append('message', '这张图片是什么？');
+formData.append('conversationId', conversationId);
+formData.append('images', fileInput.files[0]);
+
+const res = await fetch('/api/chat/stream', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}` },
+  body: formData  // 不要手动设 Content-Type
+});</pre>
+        
+        <div class="tip">
+          <div class="tip-title">两种图片上传方式的选择</div>
+          <strong>base64 JSON：</strong>实现简单，适合前端已有 base64 数据（如 canvas 截图）的场景，但传输体积增加约 33%<br>
+          <strong>multipart 文件：</strong>传输效率更高，适合用户从本地选择图片文件上传的场景
         </div>
         
-        <h4>各事件详细说明</h4>
+        <h4>SSE 响应事件流</h4>
+        <p style="margin-bottom: 10px; color: #666;">响应为 SSE 格式，每个事件为 <code>data: {JSON}\n\n</code>，按以下顺序返回：</p>
         <table class="param-table">
-          <tr><th>事件类型 (type)</th><th>触发时机</th><th>返回数据</th><th>示例</th></tr>
+          <tr><th>事件 type</th><th>触发时机</th><th>数据字段</th><th>说明</th></tr>
           <tr>
             <td><code>conversation</code></td>
-            <td>新会话创建成功时（仅首次）</td>
-            <td>conversationId: 会话ID</td>
-            <td><code>{"type":"conversation","conversationId":"uuid-xxx"}</code></td>
+            <td>新会话创建时（仅首次，仅登录用户）</td>
+            <td>conversationId</td>
+            <td>前端需保存此 ID 用于后续请求</td>
           </tr>
           <tr>
             <td><code>chunk</code></td>
             <td>AI 生成过程中（多次）</td>
-            <td>content: 部分文字</td>
-            <td><code>{"type":"chunk","content":"你"}</code></td>
+            <td>content</td>
+            <td>增量文本片段，需拼接到已有内容后</td>
           </tr>
           <tr>
             <td><code>done</code></td>
-            <td>AI 回复完成时（一次）</td>
-            <td>content: 完整回复</td>
-            <td><code>{"type":"done","content":"你好！有什么..."}</code></td>
+            <td>AI 回复完成（一次）</td>
+            <td>content</td>
+            <td>完整的回复内容</td>
           </tr>
           <tr>
             <td><code>error</code></td>
-            <td>发生错误时</td>
-            <td>message: 错误原因</td>
-            <td><code>{"type":"error","message":"API调用失败"}</code></td>
+            <td>发生错误时（替代 done）</td>
+            <td>message</td>
+            <td>错误原因描述</td>
           </tr>
         </table>
         
-        <h4>原始 SSE 响应示例</h4>
+        <h4>原始响应示例</h4>
         <span class="code-label">SSE 数据流</span>
 <pre>data: {"type":"conversation","conversationId":"550e8400-e29b-41d4-a716-446655440000"}
 
@@ -603,81 +659,42 @@ data: {"type":"chunk","content":"你"}
 
 data: {"type":"chunk","content":"好"}
 
-data: {"type":"chunk","content":"！"}
-
-data: {"type":"chunk","content":"有什么"}
-
-data: {"type":"chunk","content":"可以帮助你的吗？"}
+data: {"type":"chunk","content":"！有什么可以帮助你的吗？"}
 
 data: {"type":"done","content":"你好！有什么可以帮助你的吗？"}
-
 </pre>
         
-        <h4>完整请求示例</h4>
-        <span class="code-label">JavaScript (fetch + ReadableStream)</span>
-<pre>async function streamChat(message, conversationId) {
-  const token = localStorage.getItem('token');
-  
-  const response = await fetch('http://scj.dolmo.top:3001/api/chat/stream', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // 如果已登录，添加 Authorization 头
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify({ message, conversationId })
-  });
+        <h4>完整读取示例</h4>
+        <span class="code-label">JavaScript</span>
+<pre>const reader = res.body.getReader();
+const decoder = new TextDecoder();
+let buffer = '';
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let fullContent = '';
-  let newConversationId = conversationId;
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  buffer += decoder.decode(value, { stream: true });
+  const parts = buffer.split('\n\n');
+  buffer = parts.pop() || '';
 
-    const chunk = decoder.decode(value);
-    const lines = chunk.split('\n');
+  for (const part of parts) {
+    if (!part.startsWith('data: ')) continue;
+    const data = JSON.parse(part.slice(6));
 
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        try {
-          const data = JSON.parse(line.slice(6));
-          
-          switch (data.type) {
-            case 'conversation':
-              // 新会话创建，保存会话 ID
-              newConversationId = data.conversationId;
-              break;
-            case 'chunk':
-              // 收到一小段回复，实时显示
-              fullContent += data.content;
-              document.getElementById('response').innerText = fullContent;
-              break;
-            case 'done':
-              // 回复完成
-              console.log('完整回复:', data.content);
-              break;
-            case 'error':
-              console.error('错误:', data.message);
-              break;
-          }
-        } catch (e) { /* 忽略解析错误 */ }
-      }
+    switch (data.type) {
+      case 'conversation': /* 保存 data.conversationId */ break;
+      case 'chunk':        /* 追加 data.content 到界面 */ break;
+      case 'done':         /* 回复完成 */ break;
+      case 'error':        /* 处理错误 data.message */ break;
     }
   }
-
-  return { content: fullContent, conversationId: newConversationId };
-}
-
-// 使用示例
-streamChat('你好，请介绍一下自己');</pre>
+}</pre>
         
         <div class="tip">
-          <div class="tip-title">💡 登录 vs 未登录</div>
-          <strong>已登录：</strong>消息会保存到数据库，可以在会话列表中查看历史记录<br>
-          <strong>未登录：</strong>可以正常聊天，但消息不会保存，刷新页面后丢失
+          <div class="tip-title">登录 vs 未登录</div>
+          <strong>已登录：</strong>消息持久化到数据库，可在会话列表中查看历史<br>
+          <strong>未登录：</strong>可正常聊天，但无历史上下文，消息不保存
         </div>
       </div>
       
@@ -688,28 +705,10 @@ streamChat('你好，请介绍一下自己');</pre>
           <span class="endpoint">/api/chat/message</span>
           <span class="auth-badge auth-optional">可选登录</span>
         </div>
-        <div class="api-desc">普通聊天接口（非流式），等待 AI 完整回复后一次性返回。适合简单场景，但用户体验不如流式接口。</div>
+        <div class="api-desc">非流式聊天，等待 AI 完整回复后一次性返回。请求参数与流式接口相同，支持 JSON 和 multipart 两种方式。</div>
         
-        <h4>请求参数 (Body - JSON)</h4>
-        <table class="param-table">
-          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
-          <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>用户发送的消息内容</td></tr>
-          <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
-          <tr><td>images</td><td><span class="type">array</span></td><td><span class="optional">否</span></td><td>图片数组（Base64）</td></tr>
-        </table>
-        
-        <h4>请求示例</h4>
-        <span class="code-label">JavaScript (fetch)</span>
-<pre>const token = localStorage.getItem('token');
-const response = await fetch('http://scj.dolmo.top:3001/api/chat/message', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  },
-  body: JSON.stringify({ message: '你好' })
-});
-const data = await response.json();</pre>
+        <h4>请求参数</h4>
+        <p style="color: #666; margin-bottom: 10px;">同<a href="#chat-stream" style="color: #667eea;">流式聊天</a>的请求参数（message、conversationId、images）。</p>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -722,6 +721,11 @@ const data = await response.json();</pre>
   }
 }</pre>
       </div>
+    </div>
+    
+    <!-- ==================== 系统接口 ==================== -->
+    <div class="section">
+      <div class="section-header"><h2>系统接口</h2></div>
       
       <!-- 健康检查 -->
       <div class="api-item" id="health">
@@ -730,11 +734,7 @@ const data = await response.json();</pre>
           <span class="endpoint">/api/health</span>
           <span class="auth-badge auth-none">无需登录</span>
         </div>
-        <div class="api-desc">检查服务器是否正常运行。可用于监控或测试连接。</div>
-        
-        <h4>请求示例</h4>
-        <span class="code-label">cURL</span>
-<pre>curl http://scj.dolmo.top:3001/api/health</pre>
+        <div class="api-desc">服务健康检查，用于监控服务是否正常运行。</div>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -742,14 +742,19 @@ const data = await response.json();</pre>
   "status": "ok",
   "timestamp": "2024-01-15T10:00:00.000Z"
 }</pre>
+        
+        <div class="tip">
+          <div class="tip-title">另有聊天服务专属健康检查</div>
+          <code>GET /api/chat/health</code> 返回 <code>{ "status": "ok" }</code>
+        </div>
       </div>
     </div>
     
-    <!-- 错误处理 -->
+    <!-- ==================== 通用错误处理 ==================== -->
     <div class="section">
-      <div class="section-header"><h2>❌ 通用错误处理</h2></div>
+      <div class="section-header"><h2>通用错误处理</h2></div>
       <div class="api-item">
-        <div class="api-desc">所有接口在发生错误时都会返回统一格式的错误响应。</div>
+        <div class="api-desc">所有接口错误时返回统一格式。</div>
         
         <h4>错误响应格式</h4>
         <span class="code-label">JSON</span>
@@ -758,21 +763,20 @@ const data = await response.json();</pre>
   "error": "错误信息描述"
 }</pre>
         
-        <h4>常见错误码</h4>
+        <h4>HTTP 状态码</h4>
         <table class="param-table">
-          <tr><th>HTTP 状态码</th><th>含义</th><th>常见原因</th></tr>
-          <tr><td>400</td><td>请求参数错误</td><td>缺少必填参数、参数格式错误</td></tr>
-          <tr><td>401</td><td>未授权</td><td>未登录、token 过期或无效</td></tr>
-          <tr><td>404</td><td>资源不存在</td><td>会话/用户不存在</td></tr>
-          <tr><td>500</td><td>服务器错误</td><td>服务器内部异常</td></tr>
+          <tr><th>状态码</th><th>含义</th><th>常见场景</th></tr>
+          <tr><td>400</td><td>请求参数错误</td><td>缺少必填参数、参数格式不正确</td></tr>
+          <tr><td>401</td><td>未授权</td><td>未携带 token、token 无效或过期</td></tr>
+          <tr><td>404</td><td>资源不存在</td><td>会话不存在或不属于当前用户</td></tr>
+          <tr><td>500</td><td>服务器内部错误</td><td>数据库异常、AI 服务调用失败等</td></tr>
         </table>
         
-        <h4>前端错误处理示例</h4>
+        <h4>前端统一错误处理示例</h4>
         <span class="code-label">JavaScript</span>
 <pre>async function apiRequest(url, options = {}) {
   const token = localStorage.getItem('token');
-  
-  const response = await fetch(url, {
+  const res = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -780,28 +784,47 @@ const data = await response.json();</pre>
       ...options.headers
     }
   });
-  
-  const data = await response.json();
-  
+
+  const data = await res.json();
   if (!data.success) {
-    // 如果是 401 错误，可能需要重新登录
-    if (response.status === 401) {
+    if (res.status === 401) {
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // 跳转到登录页或显示登录弹窗
-      alert('登录已过期，请重新登录');
+      // 跳转登录页
     }
     throw new Error(data.error);
   }
-  
   return data.data;
 }</pre>
       </div>
     </div>
     
+    <!-- ==================== 静态资源 ==================== -->
+    <div class="section">
+      <div class="section-header"><h2>静态资源</h2></div>
+      <div class="api-item">
+        <div class="api-desc">上传的图片通过静态文件服务提供访问。</div>
+        
+        <h4>图片访问</h4>
+        <table class="param-table">
+          <tr><th>路径</th><th>说明</th></tr>
+          <tr><td><code>GET /uploads/{filename}</code></td><td>访问上传的图片文件</td></tr>
+        </table>
+        
+        <h4>说明</h4>
+        <p style="color: #666; margin-bottom: 10px;">消息中 <code>images[].url</code> 返回的是<strong>完整 URL</strong>（如 <code>http://scj.dolmo.top:3001/uploads/xxxxxxxx.jpg</code>），前端直接使用该 URL 即可，无需自行拼接。</p>
+        
+        <h4>images 数组字段</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">string</span></td><td>图片 ID（UUID）</td></tr>
+          <tr><td>url</td><td><span class="type">string</span></td><td>图片完整访问地址</td></tr>
+          <tr><td>storageType</td><td><span class="type">string</span></td><td>存储类型，如 <code>"local"</code></td></tr>
+        </table>
+      </div>
+    </div>
+    
     <footer>
-      <p>📝 Chat App API 文档 | 生成时间：2024</p>
-      <p style="margin-top: 10px; font-size: 0.9em;">如有问题，请联系后端开发者</p>
+      <p>Chat App API 文档 | 共 14 个端点</p>
     </footer>
   </div>
 </body>

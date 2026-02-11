@@ -161,15 +161,6 @@ export async function sendMessage(req, res) {
 }
 
 /**
- * 清除会话历史（内存中的）
- */
-export function clearHistory(req, res) {
-  const { conversationId } = req.params;
-  aiService.clearHistory(conversationId);
-  res.json({ success: true, message: 'History cleared' });
-}
-
-/**
  * 健康检查
  */
 export function healthCheck(req, res) {

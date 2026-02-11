@@ -150,14 +150,6 @@ class AIService {
     }
   }
 
-  /**
-   * 清除会话历史（现在是空操作，因为历史存在数据库中）
-   * 保留此方法是为了 API 兼容性
-   */
-  clearHistory(conversationId) {
-    // 历史记录存储在数据库中，清除需要通过 messageService.deleteConversation
-    console.log('clearHistory called for:', conversationId, '(no-op, history is in DB)');
-  }
 }
 
 // 导出单例
