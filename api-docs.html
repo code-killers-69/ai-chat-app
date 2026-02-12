@@ -618,6 +618,7 @@ const data = await res.json();</pre>
           <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
           <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
           <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
+          <tr><td>model</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>模型 ID（来自 <a href="#chat-models" style="color: #667eea;">/api/chat/models</a>），不传默认使用 Qwen2.5-7B</td></tr>
           <tr><td>images</td><td><span class="type">string[]</span></td><td><span class="optional">否</span></td><td>base64 data URL 数组，格式：<code>data:image/jpeg;base64,/9j/4AAQ...</code><br>支持格式：JPEG、PNG、GIF、WebP</td></tr>
         </table>
         <span class="code-label">JavaScript</span>
@@ -630,6 +631,7 @@ const data = await res.json();</pre>
   body: JSON.stringify({
     message: '这张图片是什么？',
     conversationId,
+    model: 'Qwen/Qwen2-VL-72B-Instruct',
     images: ['data:image/jpeg;base64,/9j/4AAQ...']  // base64 data URL
   })
 });</pre>
@@ -642,7 +644,7 @@ const data = await res.json();</pre>
           <tr><th>字段名</th><th>类型</th><th>必填</th><th>说明</th></tr>
           <tr><td>message</td><td><span class="type">text</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
           <tr><td>conversationId</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
-          <tr><td>model</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>模型 ID，不传默认使用 Qwen2.5-7B</td></tr>
+          <tr><td>model</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>模型 ID（来自 <a href="#chat-models" style="color: #667eea;">/api/chat/models</a>），不传默认使用 Qwen2.5-7B</td></tr>
           <tr><td>images</td><td><span class="type">file</span></td><td><span class="optional">否</span></td><td>图片文件，最多 10 张，单张不超过 10MB<br>支持格式：JPEG、PNG、GIF、WebP</td></tr>
         </table>
         <span class="code-label">JavaScript</span>
