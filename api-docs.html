@@ -64,7 +64,7 @@
   <div class="container">
     <header>
       <h1>Chat App API 文档</h1>
-      <p>AI 聊天应用后端接口文档 &mdash; 共 14 个端点</p>
+      <p>AI 聊天应用后端接口文档 &mdash; 共 15 个端点</p>
     </header>
     
     <div class="base-url">
@@ -99,6 +99,7 @@
       <div class="toc-group">
         <div class="toc-group-title">聊天与系统</div>
         <ul>
+          <li><a href="#chat-models"><span class="method-tag get">GET</span> 获取模型列表</a></li>
           <li><a href="#chat-stream"><span class="method-tag post">POST</span> 流式聊天（SSE）</a></li>
           <li><a href="#chat-message"><span class="method-tag post">POST</span> 普通聊天</a></li>
           <li><a href="#health"><span class="method-tag get">GET</span> 健康检查</a></li>
@@ -541,6 +542,45 @@ const data = await res.json();</pre>
     <div class="section">
       <div class="section-header"><h2>聊天相关接口</h2></div>
       
+      <!-- 获取模型列表 -->
+      <div class="api-item" id="chat-models">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/chat/models</span>
+          <span class="auth-badge auth-none">无需登录</span>
+        </div>
+        <div class="api-desc">获取后端支持的所有 AI 模型列表，前端可据此渲染模型选择下拉框。</div>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": [
+    {
+      "id": "Qwen/Qwen2.5-7B-Instruct",
+      "name": "Qwen2.5-7B",
+      "provider": "Qwen",
+      "icon": "https://img.icons8.com/...",
+      "description": "免费模型，速度快，适合日常对话",
+      "free": true,
+      "supportVision": false
+    }
+  ]
+}</pre>
+        
+        <h4>响应字段说明</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">string</span></td><td>模型唯一标识，传给聊天接口的 model 参数</td></tr>
+          <tr><td>name</td><td><span class="type">string</span></td><td>模型显示名称</td></tr>
+          <tr><td>provider</td><td><span class="type">string</span></td><td>模型厂商（Qwen / DeepSeek / GLM）</td></tr>
+          <tr><td>icon</td><td><span class="type">string</span></td><td>模型图标 URL</td></tr>
+          <tr><td>description</td><td><span class="type">string</span></td><td>模型简介</td></tr>
+          <tr><td>free</td><td><span class="type">boolean</span></td><td>是否免费</td></tr>
+          <tr><td>supportVision</td><td><span class="type">boolean</span></td><td>是否支持图片输入</td></tr>
+        </table>
+      </div>
+      
       <!-- 流式聊天 -->
       <div class="api-item" id="chat-stream">
         <div class="api-title">
@@ -558,6 +598,7 @@ const data = await res.json();</pre>
           <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
           <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
           <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID，不传则自动创建新会话（限登录用户）</td></tr>
+          <tr><td>model</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>模型 ID（来自 <a href="#chat-models" style="color: #667eea;">/api/chat/models</a>），不传默认使用 Qwen2.5-7B</td></tr>
         </table>
         <span class="code-label">JavaScript</span>
 <pre>const res = await fetch('/api/chat/stream', {
@@ -566,7 +607,7 @@ const data = await res.json();</pre>
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
   },
-  body: JSON.stringify({ message: '你好', conversationId })
+  body: JSON.stringify({ message: '你好', conversationId, model: 'Qwen/Qwen2.5-7B-Instruct' })
 });</pre>
         
         <h4>请求方式二：带图片 — JSON base64（适合少量小图）</h4>
@@ -601,6 +642,7 @@ const data = await res.json();</pre>
           <tr><th>字段名</th><th>类型</th><th>必填</th><th>说明</th></tr>
           <tr><td>message</td><td><span class="type">text</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
           <tr><td>conversationId</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
+          <tr><td>model</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>模型 ID，不传默认使用 Qwen2.5-7B</td></tr>
           <tr><td>images</td><td><span class="type">file</span></td><td><span class="optional">否</span></td><td>图片文件，最多 10 张，单张不超过 10MB<br>支持格式：JPEG、PNG、GIF、WebP</td></tr>
         </table>
         <span class="code-label">JavaScript</span>
@@ -619,6 +661,11 @@ const res = await fetch('/api/chat/stream', {
           <div class="tip-title">两种图片上传方式的选择</div>
           <strong>base64 JSON：</strong>实现简单，适合前端已有 base64 数据（如 canvas 截图）的场景，但传输体积增加约 33%<br>
           <strong>multipart 文件：</strong>传输效率更高，适合用户从本地选择图片文件上传的场景
+        </div>
+        
+        <div class="tip">
+          <div class="tip-title">模型选择说明</div>
+          <strong>model 参数：</strong>可选，不传时默认使用免费的 Qwen2.5-7B 模型。当同时上传了图片但所选模型不支持视觉时，会自动切换到视觉模型（Qwen2-VL-72B）。
         </div>
         
         <h4>SSE 响应事件流</h4>
@@ -824,7 +871,7 @@ while (true) {
     </div>
     
     <footer>
-      <p>Chat App API 文档 | 共 14 个端点</p>
+      <p>Chat App API 文档 | 共 15 个端点</p>
     </footer>
   </div>
 </body>

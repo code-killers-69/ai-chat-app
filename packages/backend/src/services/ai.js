@@ -7,13 +7,78 @@ const client = new OpenAI({
   baseURL: 'https://api.siliconflow.cn/v1',
 });
 
-// 模型配置
+// 默认模型
 const MODELS = {
-  // 免费文本模型
   text: 'Qwen/Qwen2.5-7B-Instruct',
-  // 支持图片的视觉模型（超低价）
   vision: 'Qwen/Qwen2-VL-72B-Instruct',
 };
+
+// 可用模型列表
+export const AVAILABLE_MODELS = [
+  {
+    id: 'Qwen/Qwen2.5-7B-Instruct',
+    name: 'Qwen2.5-7B',
+    provider: 'Qwen',
+    icon: 'https://img.icons8.com/?size=100&id=kTuxVYRKeKEY&format=png&color=000000',
+    description: '免费模型，速度快，适合日常对话',
+    free: true,
+    supportVision: false,
+  },
+  {
+    id: 'Qwen/Qwen2.5-14B-Instruct',
+    name: 'Qwen2.5-14B',
+    provider: 'Qwen',
+    icon: 'https://img.icons8.com/?size=100&id=kTuxVYRKeKEY&format=png&color=000000',
+    description: '中等规模，平衡速度与质量',
+    free: false,
+    supportVision: false,
+  },
+  {
+    id: 'Qwen/Qwen2.5-72B-Instruct',
+    name: 'Qwen2.5-72B',
+    provider: 'Qwen',
+    icon: 'https://img.icons8.com/?size=100&id=kTuxVYRKeKEY&format=png&color=000000',
+    description: '大参数模型，回答质量更高',
+    free: false,
+    supportVision: false,
+  },
+  {
+    id: 'deepseek-ai/DeepSeek-V3',
+    name: 'DeepSeek-V3',
+    provider: 'DeepSeek',
+    icon: 'https://cdn.deepseek.com/chat/icon.png',
+    description: 'DeepSeek 最新模型，综合能力强',
+    free: false,
+    supportVision: false,
+  },
+  {
+    id: 'deepseek-ai/DeepSeek-R1',
+    name: 'DeepSeek-R1',
+    provider: 'DeepSeek',
+    icon: 'https://cdn.deepseek.com/chat/icon.png',
+    description: '深度推理模型，擅长复杂任务',
+    free: false,
+    supportVision: false,
+  },
+  {
+    id: 'THUDM/GLM-4-9B-0414',
+    name: 'GLM-4-9B',
+    provider: 'GLM',
+    icon: 'https://chatglm.cn/img/icons/apple-touch-icon-152x152.png',
+    description: '智谱 GLM 系列，中文能力优秀',
+    free: false,
+    supportVision: false,
+  },
+  {
+    id: 'Qwen/Qwen2-VL-72B-Instruct',
+    name: 'Qwen2-VL-72B',
+    provider: 'Qwen',
+    icon: 'https://img.icons8.com/?size=100&id=kTuxVYRKeKEY&format=png&color=000000',
+    description: '视觉模型，支持图片理解与分析',
+    free: false,
+    supportVision: true,
+  },
+];
 
 // 历史记录最大条数
 const MAX_HISTORY_LENGTH = 20;
@@ -100,14 +165,27 @@ class AIService {
    * @param {Function} options.onChunk - 流式数据回调
    * @param {Function} options.onComplete - 完成回调
    */
-  async streamChat({ conversationId, userId, message, images = [], onChunk, onComplete }) {
+  async streamChat({ conversationId, userId, message, images = [], model: requestedModel, onChunk, onComplete }) {
     const messageContent = this.buildMessageContent(message, images);
     
     // 从数据库获取历史记录
     const history = await this.getConversationHistoryFromDB(conversationId);
     
-    // 选择模型：有图片用视觉模型，否则用免费文本模型
-    const model = images.length > 0 ? MODELS.vision : MODELS.text;
+    // 选择模型：优先用请求指定的，否则根据是否有图片自动选择
+    let model;
+    if (requestedModel) {
+      const valid = AVAILABLE_MODELS.find(m => m.id === requestedModel);
+      model = valid ? valid.id : (images.length > 0 ? MODELS.vision : MODELS.text);
+    } else {
+      model = images.length > 0 ? MODELS.vision : MODELS.text;
+    }
+    // 如果有图片但选的模型不支持视觉，强制切到视觉模型
+    if (images.length > 0) {
+      const selected = AVAILABLE_MODELS.find(m => m.id === model);
+      if (selected && !selected.supportVision) {
+        model = MODELS.vision;
+      }
+    }
 
     // 构建消息列表
     const messages = [

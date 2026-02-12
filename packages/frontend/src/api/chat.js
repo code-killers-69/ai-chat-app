@@ -160,6 +160,24 @@ class ChatAPI {
     this.auth = new AuthAPI();
     this.conversations = new ConversationAPI(this.auth);
     this.conversationId = null;
+    this.selectedModel = null; // 当前选中的模型 ID
+  }
+
+  /**
+   * 获取可用模型列表
+   */
+  async getModels() {
+    const res = await fetch(`${API_BASE}/chat/models`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  }
+
+  /**
+   * 设置当前使用的模型
+   */
+  setModel(modelId) {
+    this.selectedModel = modelId;
   }
 
   /**
@@ -178,6 +196,9 @@ class ChatAPI {
         if (this.conversationId) {
           formData.append('conversationId', this.conversationId);
         }
+        if (this.selectedModel) {
+          formData.append('model', this.selectedModel);
+        }
         for (const img of images) {
           formData.append('images', img.file);
         }
@@ -187,14 +208,18 @@ class ChatAPI {
           body: formData,
         });
       } else {
-        // 无图片：JSON（兼容老后端）
+        // 无图片：JSON
+        const body = {
+          message,
+          conversationId: this.conversationId,
+        };
+        if (this.selectedModel) {
+          body.model = this.selectedModel;
+        }
         response = await fetch(`${API_BASE}/chat/stream`, {
           method: 'POST',
           headers: this.auth.getHeaders(),
-          body: JSON.stringify({
-            message,
-            conversationId: this.conversationId,
-          }),
+          body: JSON.stringify(body),
         });
       }
 

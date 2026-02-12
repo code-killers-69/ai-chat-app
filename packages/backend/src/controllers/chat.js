@@ -1,4 +1,4 @@
-import { aiService } from '../services/ai.js';
+import { aiService, AVAILABLE_MODELS } from '../services/ai.js';
 import { messageService } from '../services/message.js';
 
 /**
@@ -59,7 +59,7 @@ function extractImages(req) {
  * 支持匿名和登录用户，登录用户自动持久化会话和消息
  */
 export async function streamChat(req, res) {
-  const { message, conversationId } = req.body;
+  const { message, conversationId, model } = req.body;
   const userId = req.user?.userId;
   const { imageDataList, base64Images } = extractImages(req);
 
@@ -89,7 +89,8 @@ export async function streamChat(req, res) {
       conversationId: dbConversationId || 'anonymous',
       userId: userId || 'anonymous',
       message,
-      images: base64Images, // AI 接口需要 base64 data URL
+      images: base64Images,
+      model,
       onChunk: (chunk) => {
         fullResponse += chunk;
         res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
@@ -113,7 +114,7 @@ export async function streamChat(req, res) {
  * 普通聊天（非流式）
  */
 export async function sendMessage(req, res) {
-  const { message, conversationId } = req.body;
+  const { message, conversationId, model } = req.body;
   const userId = req.user?.userId;
   const { imageDataList, base64Images } = extractImages(req);
 
@@ -136,6 +137,7 @@ export async function sendMessage(req, res) {
       userId: userId || 'anonymous',
       message,
       images: base64Images,
+      model,
       onChunk: (chunk) => {
         fullResponse += chunk;
       },
@@ -158,6 +160,16 @@ export async function sendMessage(req, res) {
     console.error('Chat error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
+}
+
+/**
+ * 获取可用模型列表
+ */
+export function getModels(req, res) {
+  res.json({
+    success: true,
+    data: AVAILABLE_MODELS,
+  });
 }
 
 /**
