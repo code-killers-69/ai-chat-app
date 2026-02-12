@@ -167,11 +167,9 @@ export async function sendMessage(req, res) {
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { createHash } from 'crypto';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ICON_CACHE_DIR = join(__dirname, '../../.icon-cache');
+const ICON_CACHE_DIR = join(process.cwd(), '.icon-cache');
 
 // 内存缓存（避免每次读磁盘）
 const iconCache = new Map();
