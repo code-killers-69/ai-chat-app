@@ -32,5 +32,6 @@ coverage/
 # Cache
 .cache/
 .parcel-cache/
+.icon-cache/
 
 packages/backend/uploads

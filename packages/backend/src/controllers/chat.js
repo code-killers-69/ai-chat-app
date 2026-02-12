@@ -163,13 +163,83 @@ export async function sendMessage(req, res) {
 }
 
 /**
- * 获取可用模型列表
+ * 获取可用模型列表（图标缓存到本地文件，避免前端跨域 + 避免重复请求）
  */
-export function getModels(req, res) {
-  res.json({
-    success: true,
-    data: AVAILABLE_MODELS,
-  });
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { createHash } from 'crypto';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ICON_CACHE_DIR = join(__dirname, '../../.icon-cache');
+
+// 内存缓存（避免每次读磁盘）
+const iconCache = new Map();
+
+function getIconCachePath(url) {
+  const hash = createHash('md5').update(url).digest('hex');
+  const ext = url.match(/\.(png|svg|ico|jpg|jpeg|webp)/)?.[1] || 'png';
+  return join(ICON_CACHE_DIR, `${hash}.${ext}`);
+}
+
+async function fetchIconAsDataUrl(url) {
+  if (iconCache.has(url)) return iconCache.get(url);
+
+  // 确保缓存目录存在
+  if (!existsSync(ICON_CACHE_DIR)) {
+    mkdirSync(ICON_CACHE_DIR, { recursive: true });
+  }
+
+  const cachePath = getIconCachePath(url);
+
+  // 本地文件缓存命中
+  if (existsSync(cachePath)) {
+    try {
+      const buffer = readFileSync(cachePath);
+      const ext = cachePath.split('.').pop();
+      const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml', ico: 'image/x-icon', webp: 'image/webp' };
+      const contentType = mimeMap[ext] || 'image/png';
+      const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
+      iconCache.set(url, dataUrl);
+      return dataUrl;
+    } catch {
+      // 文件读取失败，走网络重新下载
+    }
+  }
+
+  // 网络下载并存到本地
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`${response.status}`);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const contentType = response.headers.get('content-type') || 'image/png';
+
+    // 写入本地缓存
+    writeFileSync(cachePath, buffer);
+
+    const dataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
+    iconCache.set(url, dataUrl);
+    return dataUrl;
+  } catch {
+    return url;
+  }
+}
+
+export async function getModels(req, res) {
+  try {
+    const uniqueIcons = [...new Set(AVAILABLE_MODELS.map(m => m.icon))];
+    await Promise.all(uniqueIcons.map(url => fetchIconAsDataUrl(url)));
+
+    const data = AVAILABLE_MODELS.map(m => ({
+      ...m,
+      icon: iconCache.get(m.icon) || m.icon,
+    }));
+
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('getModels error:', error.message);
+    res.json({ success: true, data: AVAILABLE_MODELS });
+  }
 }
 
 /**
