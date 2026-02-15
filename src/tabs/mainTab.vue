@@ -4,6 +4,7 @@
             <p>Chat Bot</p>
             <button class="login-btn" @click="showLoginModal = true;" v-if="!isLogin">Login</button>
             <button class="logout-btn" @click="handleLogout" v-if="isLogin">Logout</button>
+            <button @click="scrollToFloor" style="display: none;">to floor</button>
             <div class="user-info" v-if="isLogin">
                 <div class="user-name">username:{{ userInfoRef.username }}</div>
             </div>
@@ -11,22 +12,25 @@
         <userLogin v-if="showLoginModal" class="userLogin" @on-login="onLogin" @exit="showLoginModal = false">
         </userLogin>
         <div class="scroll-area" ref="scrollArea">
-            <div v-for="message in messages" style="display: flex; flex-direction: column" :class="{
+            <div v-for="(message, index) in messages" style="display: flex; flex-direction: column" :class="{
                 yourAlign: message.role === 'assistant',
                 myAlign: message.role === 'user',
-            }">
+            }" key="message">
                 <div class="message-bubble" :class="{
                     yourStyle: message.role === 'assistant',
                     myStyle: message.role === 'user',
                 }">
                     <div class="article-area">
-                        <p>{{ message.content }}</p>
+                        <Transition>
+                            <p id="streamer">{{ message.content }}</p>
+                        </Transition>
+                        <div v-show="index == messages.length - 1"></div>
                     </div>
                     <ImageContainer v-for="imageUrl in message.imageUrls" :image-url="imageUrl"
                         :enable-loading-gif="false" v-observe :key="imageUrl" :size="200">
                     </ImageContainer>
                     <div class="time-tag">
-                        <p>{{ message.time }}</p>
+                        <p id="index">{{ message.time }}</p>
                     </div>
                 </div>
             </div>
@@ -46,14 +50,28 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, nextTick, watch } from 'vue';
 import ImageContainer from '@/componenets/imageContainer.vue';
 import { getDate } from '@/utils/getCurrentTimestamp';
 import userLogin from '@/componenets/userLogin.vue';
-import { conversationIdRef, newConvoId, setToken, token, userInfoRef } from '@/states/user';
+import { conversationIdRef, setToken, token, userInfoRef } from '@/states/user';
 import { Message, messages } from '@/states/message';
 const messageContent = ref('')
 const scrollArea = ref(null);
+
+const scrollToFloor = () => {
+    scrollArea.value.scrollTo({
+        top: scrollArea.value.scrollHeight,
+        left: 0,
+        behavior: 'instant',
+    })
+}
+
+// 自动跳转最新消息
+watch(messages, async () => {
+    await nextTick();
+    scrollToFloor();
+})
 
 const sendMessageIn = async (event) => {
     if (event.key !== 'Enter' || messageContent.value === '') return;
@@ -62,30 +80,54 @@ const sendMessageIn = async (event) => {
     const newMessageContent = messageContent.value;
     messageContent.value = ''
     imageUrls.value = [];
+    const fullStreamContent = ref('');
 
-
-    const respose = await fetch('http://scj.dolmo.top:3001/api/chat/message', {
+    // 网络请求 流式传输
+    const response = await fetch('http://scj.dolmo.top:3001/api/chat/stream', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-
         body: JSON.stringify({ message: newMessageContent, conversationId: conversationIdRef.value, images: imageBase64s })
     })
+    const timeNow = getDate()
+    messages.value.push(new Message('', timeNow, 'assistant'))
 
-    const test = await respose.json()
-    conversationIdRef.value = test.data.conversationId //新对话id首次获取
-    messages.value.push(new Message(test.data.content, currentTimestamp, 'assistant'))
+    const reader = response.body.getReader() // 锁住可读数据流 给本次reader*实例
+    const decoder = new TextDecoder()
 
+    while (true) {
+        const { value, done } = await reader.read(); // 解析可读块
+        if (done) break; //结束条件 流的最后一块触发done：true
+        // 解码块数据
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                try {
+                    const data = JSON.parse(line.slice(6));
+                    if (data.type == 'conversation') {
+                        // 只拿首次会返回的有效的id，后续是undefined
+                        if (data.conversationId) {
+                            conversationIdRef.value = data.conversationId;
+                        }
+                    } else if (data.type == 'chunk') {
+                        messages.value[messages.value.length - 1].content += data.content
+                        scrollToFloor()
+                    } else if (data.type == 'done') {
+                        console.log('回复完成：', fullStreamContent.value);
+                    } else {
+                        console.log('返回错误:', data.message);
+                    }
+                } catch (error) {
+                    console.error('错误：', error);
+                }
+            }
+        }
+    }
     imageBase64s.length = 0
-    nextTick(() => {
-        scrollArea.value.scrollTo({
-            top: scrollArea.value.scrollHeight,
-            left: 0,
-            behavior: 'smooth',
-        })
-    })
 }
 
 const fileInput = ref(null);
@@ -108,9 +150,10 @@ const handleFileChange = (e) => {
 };
 
 const handlePaste = (e) => {
-    e.preventDefault();
+
     for (const file of e.clipboardData.files) {
         if (e.clipboardData.files.length && file.type.includes('image')) {
+            e.preventDefault();
             imageUrls.value.push(URL.createObjectURL(file));
         }
     }
@@ -169,6 +212,7 @@ const onLogin = () => {
     showLoginModal.value = false;
     isLogin.value = true;
 }
+
 </script>
 
 <style scoped>
@@ -300,5 +344,36 @@ const onLogin = () => {
     top: 200px;
     left: 50%;
     transform: translateX(-50%);
+}
+
+.v-enter-active,
+.v-leave-active {
+    transition: opacity 1s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+    opacity: 0;
+}
+
+.cursor {
+    width: 2px;
+    height: 15px;
+    background-color: black;
+    animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 </style>

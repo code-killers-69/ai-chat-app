@@ -12,7 +12,7 @@ import Conversations from './tabs/conversations.vue';
 import { onMounted, ref } from 'vue';
 import { Conversation, conversations } from './states/conversation';
 
-const conversationsRef = ref(null)
+const conversationsRef = ref(null);
 
 onMounted(async () => {
   const token = localStorage.getItem('token')
