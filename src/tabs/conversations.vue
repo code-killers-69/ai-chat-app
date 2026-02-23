@@ -1,8 +1,8 @@
 <template>
     <div class="container">
         <button class="createNewConvo" @click="createNewConvo">New Convo</button>
-        <div class="conversation" v-for="(conversation, index) in conversations" @click="choseConvo(conversation)"
-            ref="convoList" style="display: flex;">
+        <div class="conversation" v-for="(conversation, index) in conversations"
+            @click="choseConvo(conversation, index)" ref="convoList" style="display: flex;">
             <div class="title">
                 {{ conversation.title }}
             </div>
@@ -19,12 +19,21 @@ import { Message, messages } from '@/states/message';
 import { conversationIdRef } from '@/states/user';
 import { nextTick, ref, useTemplateRef } from 'vue';
 
-//  message请求：
-const choseConvo = async (conversation) => {
+const convoListRef = useTemplateRef('convoList')
+
+const choseConvo = async (conversation, index) => {
+    //  message常规请求：
     messages.value = conversation.messages
     conversationIdRef.value = conversation.id;
+
+    // 当前convo高亮
+    await nextTick()
+    convoListRef.value.forEach(convo => { convo.classList.remove("selected") });
+    convoListRef.value[index?index:0].classList.add("selected")
+
+    // 首次请求
     if (conversation.messages.length === 0 && conversation.id) {
-        let conversationId = conversation.id;        // conversationId = newConvoId.value;
+        let conversationId = conversation.id;
         const token = localStorage.getItem('token');
         const response = await fetch(`http://scj.dolmo.top:3001/api/conversations/${conversationId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -40,12 +49,11 @@ const choseConvo = async (conversation) => {
 }
 
 //  新建convo:
-const convoListRef = useTemplateRef('convoList')
 
 const createNewConvo = async () => {
     conversations.value.push(new Conversation(null, `newConvo${conversations.value.length + 1}`))
     await nextTick();
-    convoListRef.value[convoListRef.value.length - 1].click()
+    convoListRef.value[convoListRef.value.length - 1].click() //自动跳转到新convo
 }
 
 //  删除convo：
@@ -96,5 +104,10 @@ defineExpose({ choseConvo })
 .container {
     display: flex;
     flex-direction: column;
+}
+
+.selected {
+    color: rgb(6, 49, 135);
+    font-weight: bolder;
 }
 </style>
