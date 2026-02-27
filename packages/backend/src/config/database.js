@@ -81,6 +81,7 @@ export async function initDatabase() {
         message_id VARCHAR(36) NOT NULL,
         storage_type ENUM('local', 'cdn', 'cos') DEFAULT 'local',
         url VARCHAR(500) NOT NULL,
+        fallback_url VARCHAR(500) DEFAULT '',
         original_name VARCHAR(255),
         mime_type VARCHAR(100),
         size INT,
@@ -88,6 +89,11 @@ export async function initDatabase() {
         FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
       )
     `);
+
+    // 升级：为已有 images 表添加 fallback_url 字段
+    await connection.execute(
+      `ALTER TABLE images ADD COLUMN fallback_url VARCHAR(500) DEFAULT '' AFTER url`
+    ).catch(() => { /* 字段已存在则忽略 */ });
 
     console.log('Database tables initialized successfully');
   } finally {

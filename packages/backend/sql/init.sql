@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS images (
   message_id VARCHAR(36) NOT NULL,
   storage_type ENUM('local', 'cdn', 'cos') DEFAULT 'local',
   url VARCHAR(500) NOT NULL,
+  fallback_url VARCHAR(500) DEFAULT '',
   original_name VARCHAR(255),
   mime_type VARCHAR(100),
   size INT,

@@ -8,7 +8,15 @@
                 <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}-waitBlock`">
                     <div class="spinner"></div>
                 </div>
-                <img v-if="resolvedSrc" :src="resolvedSrc" class="imageBlock" v-show="isLoaded"
+                <!-- 有兜底图：主图加载失败时自动切换到 fallback -->
+                <img v-if="resolvedSrc && resolvedFallback"
+                    :src="useFallback ? resolvedFallback : resolvedSrc"
+                    class="imageBlock" v-show="isLoaded"
+                    :key="`${imageUrl}-imageBlock-${useFallback}`"
+                    @load="onImageLoaded"
+                    @error="onMainImageError" />
+                <!-- 无兜底图：直接 <img>（本地预览 / GIF / 旧数据） -->
+                <img v-else-if="resolvedSrc" :src="resolvedSrc" class="imageBlock" v-show="isLoaded"
                     :key="`${imageUrl}-imageBlock`" @load="onImageLoaded" />
             </TransitionGroup>
         </div>
@@ -23,6 +31,10 @@ const props = defineProps({
     imageUrl: {
         type: String,
         required: true,
+    },
+    fallbackUrl: {
+        type: String,
+        default: '',
     },
     size: {
         type: String,
@@ -40,12 +52,19 @@ const props = defineProps({
 
 const emit = defineEmits(['onImageLoaded', 'onImageDeleted'])
 const isLoaded = ref(false)
-// 实际用于 img src 的地址（可能是 blob URL）
 const resolvedSrc = ref(null)
+const resolvedFallback = ref(null)
+const useFallback = ref(false)
 
 const onImageLoaded = () => {
     isLoaded.value = true
     emit('onImageLoaded')
+}
+
+const onMainImageError = () => {
+    if (!useFallback.value && resolvedFallback.value) {
+        useFallback.value = true
+    }
 }
 
 const onDelete = () => {
@@ -63,12 +82,18 @@ async function loadImage() {
     const cached = getCachedImageSync(props.imageUrl)
     if (cached) {
         resolvedSrc.value = cached
+        if (props.fallbackUrl) {
+            resolvedFallback.value = getCachedImageSync(props.fallbackUrl) || await getCachedImage(props.fallbackUrl)
+        }
         return
     }
 
     // 没有缓存，fetch 并缓存为 blob URL
     const blobUrl = await getCachedImage(props.imageUrl)
     resolvedSrc.value = blobUrl
+    if (props.fallbackUrl) {
+        resolvedFallback.value = await getCachedImage(props.fallbackUrl)
+    }
 }
 
 onMounted(() => {
@@ -78,11 +103,18 @@ onMounted(() => {
     const cached = getCachedImageSync(props.imageUrl)
     if (cached) {
         resolvedSrc.value = cached
+        if (props.fallbackUrl) {
+            const cachedFb = getCachedImageSync(props.fallbackUrl)
+            if (cachedFb) {
+                resolvedFallback.value = cachedFb
+            } else {
+                getCachedImage(props.fallbackUrl).then(url => { resolvedFallback.value = url })
+            }
+        }
         return
     }
 
     // 没有缓存 → 用 IntersectionObserver 实现真正的懒加载
-    // 只有进入视口才开始 fetch
     lazyObserver = new IntersectionObserver(
         (entries) => {
             for (const entry of entries) {
@@ -94,7 +126,7 @@ onMounted(() => {
                 }
             }
         },
-        { rootMargin: '200px' } // 提前 200px 开始加载
+        { rootMargin: '200px' }
     )
     lazyObserver.observe(imageContainer.value)
 })

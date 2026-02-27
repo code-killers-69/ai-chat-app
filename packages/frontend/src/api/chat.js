@@ -182,15 +182,21 @@ class ChatAPI {
 
   /**
    * 流式发送消息
-   * - 有图片 → multipart/form-data（二进制直传）
+   * - 有图片 → multipart/form-data（只传主图 webp，不传兜底图）
    * - 无图片 → JSON（兼容老后端）
+   * - AI 回复完成后，异步上传兜底图（不阻塞 AI 响应）
    */
   async streamMessage({ message, images = [], onChunk, onComplete, onError, onConversationCreated }) {
+    // 收集需要异步上传的兜底图
+    const fallbackEntries = images
+      .filter(img => img.fallbackFile)
+      .map(img => img.fallbackFile);
+
     try {
       let response;
 
       if (images.length > 0) {
-        // 有图片：multipart/form-data
+        // 有图片：multipart/form-data，只传主图
         const formData = new FormData();
         formData.append('message', message || '');
         if (this.conversationId) {
@@ -250,6 +256,10 @@ class ChatAPI {
                 onChunk?.(data.content);
               } else if (data.type === 'done') {
                 onComplete?.(data.content);
+                // 异步上传兜底图，不阻塞
+                if (data.imageIds && data.imageIds.length > 0 && fallbackEntries.length > 0) {
+                  this._uploadFallbacks(data.imageIds, fallbackEntries);
+                }
               } else if (data.type === 'error') {
                 onError?.(new Error(data.message));
               }
@@ -262,6 +272,31 @@ class ChatAPI {
     } catch (error) {
       console.error('Stream message error:', error);
       onError?.(error);
+    }
+  }
+
+  /**
+   * 异步上传兜底图（后台静默执行，不影响用户体验）
+   * @param {string[]} imageIds - 后端返回的图片 ID 列表
+   * @param {File[]} fallbackFiles - 对应的 jpeg 兜底图文件
+   */
+  async _uploadFallbacks(imageIds, fallbackFiles) {
+    try {
+      const formData = new FormData();
+      formData.append('imageIds', JSON.stringify(imageIds));
+      for (const file of fallbackFiles) {
+        formData.append('fallbacks', file);
+      }
+      const res = await fetch(`${API_BASE}/chat/upload-fallbacks`, {
+        method: 'POST',
+        headers: this.auth.getHeaders(false),
+        body: formData,
+      });
+      if (!res.ok) {
+        console.warn('Upload fallbacks failed:', res.status);
+      }
+    } catch (error) {
+      console.warn('Upload fallbacks error:', error);
     }
   }
 

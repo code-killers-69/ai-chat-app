@@ -1,5 +1,6 @@
 import { aiService, AVAILABLE_MODELS } from '../services/ai.js';
 import { messageService } from '../services/message.js';
+import { storageService } from '../services/storage.js';
 
 /**
  * 统一处理图片：同时兼容 multipart 上传和 JSON base64 两种方式
@@ -17,9 +18,11 @@ function extractImages(req) {
   const imageDataList = [];
   const base64Images = [];
 
-  // 优先使用 multipart 上传的文件（新方式）
-  if (req.files && req.files.length > 0) {
-    for (const file of req.files) {
+  // 优先使用 multipart 上传的文件（只有主图，无 fallback）
+  const mainFiles = req.files?.images || [];
+
+  if (mainFiles.length > 0) {
+    for (const file of mainFiles) {
       imageDataList.push({
         data: file.buffer,
         originalName: file.originalname,
@@ -37,15 +40,15 @@ function extractImages(req) {
     for (const dataUrl of bodyImages) {
       if (typeof dataUrl !== 'string') continue;
 
-      // data URL 直接给 AI 接口用
       base64Images.push(dataUrl);
 
-      // 解析 mime 类型，交给存储服务（storageService.saveImage 支持 base64 string）
-      const mimeMatch = dataUrl.match(/^data:(image\/\w+);base64,/);
+      const mimeMatch = dataUrl.match(/^data:(image\/[^;]+);base64,/);
       const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const extMap = { 'image/webp': '.webp', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif' };
+      const ext = extMap[mimeType] || '.jpg';
       imageDataList.push({
-        data: dataUrl,            // storage.saveImage 会自动处理 base64 string
-        originalName: 'image.jpg',
+        data: dataUrl,
+        originalName: `image${ext}`,
         mimeType,
       });
     }
@@ -72,6 +75,8 @@ export async function streamChat(req, res) {
   let dbConversationId = conversationId;
 
   try {
+    let savedImageIds = [];
+
     // 如果用户已登录，进行持久化
     if (userId) {
       if (!dbConversationId) {
@@ -80,7 +85,8 @@ export async function streamChat(req, res) {
         res.write(`data: ${JSON.stringify({ type: 'conversation', conversationId: dbConversationId })}\n\n`);
       }
 
-      await messageService.saveUserMessage(dbConversationId, message, imageDataList);
+      const savedMsg = await messageService.saveUserMessage(dbConversationId, message, imageDataList);
+      savedImageIds = (savedMsg.images || []).map(img => img.id);
     }
 
     let fullResponse = '';
@@ -99,7 +105,11 @@ export async function streamChat(req, res) {
         if (userId && dbConversationId) {
           await messageService.saveAssistantMessage(dbConversationId, response);
         }
-        res.write(`data: ${JSON.stringify({ type: 'done', content: response })}\n\n`);
+        const doneData = { type: 'done', content: response };
+        if (savedImageIds.length > 0) {
+          doneData.imageIds = savedImageIds;
+        }
+        res.write(`data: ${JSON.stringify(doneData)}\n\n`);
         res.end();
       },
     });
@@ -120,6 +130,7 @@ export async function sendMessage(req, res) {
 
   try {
     let dbConversationId = conversationId;
+    let savedImageIds = [];
 
     if (userId) {
       if (!dbConversationId) {
@@ -127,7 +138,8 @@ export async function sendMessage(req, res) {
         dbConversationId = conv.id;
       }
 
-      await messageService.saveUserMessage(dbConversationId, message, imageDataList);
+      const savedMsg = await messageService.saveUserMessage(dbConversationId, message, imageDataList);
+      savedImageIds = (savedMsg.images || []).map(img => img.id);
     }
 
     let fullResponse = '';
@@ -148,13 +160,18 @@ export async function sendMessage(req, res) {
       },
     });
 
+    const responseData = {
+      content: fullResponse,
+      conversationId: dbConversationId,
+      timestamp: new Date().toISOString(),
+    };
+    if (savedImageIds.length > 0) {
+      responseData.imageIds = savedImageIds;
+    }
+
     res.json({
       success: true,
-      data: {
-        content: fullResponse,
-        conversationId: dbConversationId,
-        timestamp: new Date().toISOString(),
-      },
+      data: responseData,
     });
   } catch (error) {
     console.error('Chat error:', error);
@@ -245,4 +262,44 @@ export async function getModels(req, res) {
  */
 export function healthCheck(req, res) {
   res.json({ status: 'ok' });
+}
+
+/**
+ * 上传兜底图（独立接口，不阻塞 AI 响应）
+ * 前端在聊天请求完成后异步调用，按 imageId 更新 fallback_url
+ *
+ * Body: multipart/form-data
+ *   - imageIds: JSON 字符串，如 '["id1","id2"]'
+ *   - fallbacks: file[]（与 imageIds 按索引一一对应）
+ */
+export async function uploadFallbacks(req, res) {
+  try {
+    const imageIds = JSON.parse(req.body?.imageIds || '[]');
+    const fallbackFiles = req.files?.fallbacks || [];
+
+    if (imageIds.length === 0 || fallbackFiles.length === 0) {
+      return res.status(400).json({ success: false, error: '缺少 imageIds 或 fallbacks' });
+    }
+
+    const results = [];
+    for (let i = 0; i < imageIds.length; i++) {
+      const imageId = imageIds[i];
+      const file = fallbackFiles[i];
+      if (!file) continue;
+
+      const { url } = await storageService.saveImage(
+        file.buffer,
+        file.originalname || 'fallback.jpg',
+        file.mimetype || 'image/jpeg'
+      );
+
+      await messageService.updateImageFallback(imageId, url);
+      results.push({ imageId, fallbackUrl: url });
+    }
+
+    res.json({ success: true, data: results });
+  } catch (error) {
+    console.error('Upload fallbacks error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 }

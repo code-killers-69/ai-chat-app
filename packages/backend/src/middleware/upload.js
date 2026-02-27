@@ -20,10 +20,16 @@ const upload = multer({
   },
 });
 
-const multerMiddleware = upload.array('images', 10);
+const multerImages = upload.fields([
+  { name: 'images', maxCount: 10 },
+]);
+
+const multerFallbacks = upload.fields([
+  { name: 'fallbacks', maxCount: 10 },
+]);
 
 /**
- * 兼容性图片上传中间件
+ * 兼容性图片上传中间件（聊天接口用，只接收主图）
  * - multipart/form-data 请求：走 multer 解析，图片在 req.files
  * - application/json 请求：跳过 multer，图片在 req.body.images（base64）
  */
@@ -32,7 +38,19 @@ export const uploadImages = (req, res, next) => {
 
   // 只有 multipart 请求才走 multer，JSON 请求直接放行
   if (contentType.includes('multipart/form-data')) {
-    multerMiddleware(req, res, next);
+    multerImages(req, res, next);
+  } else {
+    next();
+  }
+};
+
+/**
+ * 兜底图上传中间件（独立接口用，只接收 fallbacks）
+ */
+export const uploadFallbacks = (req, res, next) => {
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('multipart/form-data')) {
+    multerFallbacks(req, res, next);
   } else {
     next();
   }

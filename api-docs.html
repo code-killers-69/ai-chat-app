@@ -64,7 +64,7 @@
   <div class="container">
     <header>
       <h1>Chat App API 文档</h1>
-      <p>AI 聊天应用后端接口文档 &mdash; 共 15 个端点</p>
+      <p>AI 聊天应用后端接口文档 &mdash; 共 16 个端点</p>
     </header>
     
     <div class="base-url">
@@ -102,6 +102,7 @@
           <li><a href="#chat-models"><span class="method-tag get">GET</span> 获取模型列表</a></li>
           <li><a href="#chat-stream"><span class="method-tag post">POST</span> 流式聊天（SSE）</a></li>
           <li><a href="#chat-message"><span class="method-tag post">POST</span> 普通聊天</a></li>
+          <li><a href="#chat-fallbacks"><span class="method-tag post">POST</span> 上传兜底图</a></li>
           <li><a href="#health"><span class="method-tag get">GET</span> 健康检查</a></li>
         </ul>
       </div>
@@ -176,7 +177,9 @@ const data = await res.json();</pre>
         <h4>错误响应</h4>
         <table class="param-table">
           <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
-          <tr><td>400</td><td>用户名和密码为必填项</td><td>缺少参数</td></tr>
+          <tr><td>400</td><td>用户名和密码不能为空</td><td>缺少参数</td></tr>
+          <tr><td>400</td><td>用户名长度需在 3-50 字符之间</td><td>用户名过短或过长</td></tr>
+          <tr><td>400</td><td>密码长度至少 6 位</td><td>密码过短</td></tr>
           <tr><td>400</td><td>用户名已存在</td><td>重复注册</td></tr>
         </table>
       </div>
@@ -214,6 +217,7 @@ const data = await res.json();</pre>
         <h4>错误响应</h4>
         <table class="param-table">
           <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>400</td><td>用户名和密码不能为空</td><td>缺少参数</td></tr>
           <tr><td>401</td><td>用户名或密码错误</td><td>凭据不匹配</td></tr>
         </table>
         
@@ -378,15 +382,22 @@ const data = await res.json();</pre>
         "id": "msg-uuid-1",
         "conversation_id": "conv-uuid-1",
         "role": "user",
-        "content": "Vue3 和 Vue2 有什么区别？",
+        "content": "帮我看看这张图片",
         "created_at": "2024-01-15T10:00:00.000Z",
-        "images": []
+        "images": [
+          {
+            "id": "img-uuid-1",
+            "url": "http://scj.dolmo.top:3001/uploads/xxxxxxxx.webp",
+            "fallbackUrl": "http://scj.dolmo.top:3001/uploads/xxxxxxxx.jpg",
+            "storageType": "local"
+          }
+        ]
       },
       {
         "id": "msg-uuid-2",
         "conversation_id": "conv-uuid-1",
         "role": "assistant",
-        "content": "Vue3 相比 Vue2 有很多改进...",
+        "content": "这张图片显示的是...",
         "created_at": "2024-01-15T10:00:02.500Z",
         "images": []
       }
@@ -399,7 +410,16 @@ const data = await res.json();</pre>
           <tr><th>字段</th><th>类型</th><th>说明</th></tr>
           <tr><td>role</td><td><span class="type">"user" | "assistant"</span></td><td>消息角色</td></tr>
           <tr><td>content</td><td><span class="type">string</span></td><td>消息文本内容</td></tr>
-          <tr><td>images</td><td><span class="type">array</span></td><td>关联图片列表，每项含 id、url、storageType</td></tr>
+          <tr><td>images</td><td><span class="type">array</span></td><td>关联图片列表</td></tr>
+        </table>
+        
+        <h4>images 数组字段</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">string</span></td><td>图片 ID（UUID）</td></tr>
+          <tr><td>url</td><td><span class="type">string</span></td><td>主图地址（通常为 WebP 格式，体积更小）</td></tr>
+          <tr><td>fallbackUrl</td><td><span class="type">string</span></td><td>兜底图地址（JPEG 格式），主图加载失败时使用。为空字符串表示无兜底图</td></tr>
+          <tr><td>storageType</td><td><span class="type">string</span></td><td>存储类型，如 <code>"local"</code></td></tr>
         </table>
         
         <h4>错误响应</h4>
@@ -448,7 +468,7 @@ const data = await res.json();</pre>
           <span class="endpoint">/api/conversations/:id</span>
           <span class="auth-badge auth-required">需要登录</span>
         </div>
-        <div class="api-desc">删除指定会话，<strong>级联删除</strong>该会话下的所有消息和关联图片文件。此操作不可恢复。</div>
+        <div class="api-desc">删除指定会话，<strong>级联删除</strong>该会话下的所有消息和关联图片文件（包括主图和兜底图）。此操作不可恢复。</div>
         
         <h4>路径参数</h4>
         <table class="param-table">
@@ -507,9 +527,16 @@ const data = await res.json();</pre>
       {
         "id": "msg-uuid-1",
         "role": "user",
-        "content": "Vue3 和 Vue2 有什么区别？",
+        "content": "帮我看看这张图片",
         "created_at": "2024-01-15T10:00:00.000Z",
-        "images": []
+        "images": [
+          {
+            "id": "img-uuid-1",
+            "url": "http://scj.dolmo.top:3001/uploads/xxxxxxxx.webp",
+            "fallbackUrl": "http://scj.dolmo.top:3001/uploads/xxxxxxxx.jpg",
+            "storageType": "local"
+          }
+        ]
       }
     ],
     "pagination": {
@@ -549,7 +576,7 @@ const data = await res.json();</pre>
           <span class="endpoint">/api/chat/models</span>
           <span class="auth-badge auth-none">无需登录</span>
         </div>
-        <div class="api-desc">获取后端支持的所有 AI 模型列表，前端可据此渲染模型选择下拉框。</div>
+        <div class="api-desc">获取后端支持的所有 AI 模型列表，前端可据此渲染模型选择下拉框。模型图标已由后端缓存为 base64 data URL，前端无需额外请求。</div>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -560,7 +587,7 @@ const data = await res.json();</pre>
       "id": "Qwen/Qwen2.5-7B-Instruct",
       "name": "Qwen2.5-7B",
       "provider": "Qwen",
-      "icon": "https://img.icons8.com/...",
+      "icon": "data:image/png;base64,iVBOR...",
       "description": "免费模型，速度快，适合日常对话",
       "free": true,
       "supportVision": false
@@ -574,7 +601,7 @@ const data = await res.json();</pre>
           <tr><td>id</td><td><span class="type">string</span></td><td>模型唯一标识，传给聊天接口的 model 参数</td></tr>
           <tr><td>name</td><td><span class="type">string</span></td><td>模型显示名称</td></tr>
           <tr><td>provider</td><td><span class="type">string</span></td><td>模型厂商（Qwen / DeepSeek / GLM）</td></tr>
-          <tr><td>icon</td><td><span class="type">string</span></td><td>模型图标 URL</td></tr>
+          <tr><td>icon</td><td><span class="type">string</span></td><td>模型图标（base64 data URL，已由后端缓存转换）</td></tr>
           <tr><td>description</td><td><span class="type">string</span></td><td>模型简介</td></tr>
           <tr><td>free</td><td><span class="type">boolean</span></td><td>是否免费</td></tr>
           <tr><td>supportVision</td><td><span class="type">boolean</span></td><td>是否支持图片输入</td></tr>
@@ -618,7 +645,7 @@ const data = await res.json();</pre>
           <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
           <tr><td>message</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
           <tr><td>conversationId</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
-          <tr><td>model</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>模型 ID（来自 <a href="#chat-models" style="color: #667eea;">/api/chat/models</a>），不传默认使用 Qwen2.5-7B</td></tr>
+          <tr><td>model</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>模型 ID</td></tr>
           <tr><td>images</td><td><span class="type">string[]</span></td><td><span class="optional">否</span></td><td>base64 data URL 数组，格式：<code>data:image/jpeg;base64,/9j/4AAQ...</code><br>支持格式：JPEG、PNG、GIF、WebP</td></tr>
         </table>
         <span class="code-label">JavaScript</span>
@@ -632,11 +659,11 @@ const data = await res.json();</pre>
     message: '这张图片是什么？',
     conversationId,
     model: 'Qwen/Qwen2-VL-72B-Instruct',
-    images: ['data:image/jpeg;base64,/9j/4AAQ...']  // base64 data URL
+    images: ['data:image/jpeg;base64,/9j/4AAQ...']
   })
 });</pre>
         
-        <h4>请求方式三：带图片 — multipart/form-data（适合大图/多图）</h4>
+        <h4>请求方式三：带图片 — multipart/form-data（推荐）</h4>
         <table class="param-table">
           <tr><th>Header</th><th colspan="3">Content-Type: multipart/form-data（fetch 使用 FormData 时自动设置）</th></tr>
         </table>
@@ -644,14 +671,17 @@ const data = await res.json();</pre>
           <tr><th>字段名</th><th>类型</th><th>必填</th><th>说明</th></tr>
           <tr><td>message</td><td><span class="type">text</span></td><td><span class="required">是</span></td><td>消息内容</td></tr>
           <tr><td>conversationId</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>会话 ID</td></tr>
-          <tr><td>model</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>模型 ID（来自 <a href="#chat-models" style="color: #667eea;">/api/chat/models</a>），不传默认使用 Qwen2.5-7B</td></tr>
-          <tr><td>images</td><td><span class="type">file</span></td><td><span class="optional">否</span></td><td>图片文件，最多 10 张，单张不超过 10MB<br>支持格式：JPEG、PNG、GIF、WebP</td></tr>
+          <tr><td>model</td><td><span class="type">text</span></td><td><span class="optional">否</span></td><td>模型 ID</td></tr>
+          <tr><td>images</td><td><span class="type">file[]</span></td><td><span class="optional">否</span></td><td>主图文件（推荐 WebP 格式），最多 10 张，单张不超过 10MB</td></tr>
         </table>
         <span class="code-label">JavaScript</span>
 <pre>const formData = new FormData();
 formData.append('message', '这张图片是什么？');
 formData.append('conversationId', conversationId);
-formData.append('images', fileInput.files[0]);
+formData.append('model', 'Qwen/Qwen2-VL-72B-Instruct');
+
+formData.append('images', webpFile1);  // 只传主图
+formData.append('images', webpFile2);
 
 const res = await fetch('/api/chat/stream', {
   method: 'POST',
@@ -660,9 +690,14 @@ const res = await fetch('/api/chat/stream', {
 });</pre>
         
         <div class="tip">
+          <div class="tip-title">兜底图异步上传机制</div>
+          为了不影响 AI 响应速度，聊天接口<strong>只上传主图</strong>（WebP），不传兜底图。AI 回复完成后，SSE <code>done</code> 事件会返回 <code>imageIds</code>（图片 ID 列表），前端拿到后<strong>异步调用</strong> <a href="#chat-fallbacks" style="color: #667eea;">/api/chat/upload-fallbacks</a> 接口上传 JPEG 兜底图，不阻塞用户体验。
+        </div>
+        
+        <div class="tip">
           <div class="tip-title">两种图片上传方式的选择</div>
-          <strong>base64 JSON：</strong>实现简单，适合前端已有 base64 数据（如 canvas 截图）的场景，但传输体积增加约 33%<br>
-          <strong>multipart 文件：</strong>传输效率更高，适合用户从本地选择图片文件上传的场景
+          <strong>base64 JSON：</strong>实现简单，适合前端已有 base64 数据的场景，但传输体积增加约 33%<br>
+          <strong>multipart 文件：</strong>传输效率更高，推荐使用。兜底图通过<a href="#chat-fallbacks" style="color: #667eea;">独立接口</a>异步上传，不影响 AI 响应速度
         </div>
         
         <div class="tip">
@@ -689,8 +724,8 @@ const res = await fetch('/api/chat/stream', {
           <tr>
             <td><code>done</code></td>
             <td>AI 回复完成（一次）</td>
-            <td>content</td>
-            <td>完整的回复内容</td>
+            <td>content, imageIds?</td>
+            <td>完整的回复内容。若用户消息含图片，还会返回 <code>imageIds</code>（图片 ID 数组），用于异步上传兜底图</td>
           </tr>
           <tr>
             <td><code>error</code></td>
@@ -710,7 +745,7 @@ data: {"type":"chunk","content":"好"}
 
 data: {"type":"chunk","content":"！有什么可以帮助你的吗？"}
 
-data: {"type":"done","content":"你好！有什么可以帮助你的吗？"}
+data: {"type":"done","content":"你好！有什么可以帮助你的吗？","imageIds":["img-uuid-1","img-uuid-2"]}
 </pre>
         
         <h4>完整读取示例</h4>
@@ -754,10 +789,10 @@ while (true) {
           <span class="endpoint">/api/chat/message</span>
           <span class="auth-badge auth-optional">可选登录</span>
         </div>
-        <div class="api-desc">非流式聊天，等待 AI 完整回复后一次性返回。请求参数与流式接口相同，支持 JSON 和 multipart 两种方式。</div>
+        <div class="api-desc">非流式聊天，等待 AI 完整回复后一次性返回。请求参数与流式接口完全相同，支持 JSON 和 multipart 两种方式（不含兜底图，兜底图通过独立接口上传）。</div>
         
         <h4>请求参数</h4>
-        <p style="color: #666; margin-bottom: 10px;">同<a href="#chat-stream" style="color: #667eea;">流式聊天</a>的请求参数（message、conversationId、images）。</p>
+        <p style="color: #666; margin-bottom: 10px;">同<a href="#chat-stream" style="color: #667eea;">流式聊天</a>的请求参数（message、conversationId、model、images）。</p>
         
         <h4>成功响应</h4>
         <span class="code-label">JSON</span>
@@ -766,9 +801,66 @@ while (true) {
   "data": {
     "content": "你好！有什么我可以帮助你的吗？",
     "conversationId": "conv-uuid-1",
-    "timestamp": "2024-01-15T10:00:00.000Z"
+    "timestamp": "2024-01-15T10:00:00.000Z",
+    "imageIds": ["img-uuid-1"]
   }
 }</pre>
+        <div class="tip">
+          <div class="tip-title">imageIds 字段</div>
+          仅当用户消息包含图片时才返回，值为图片 ID 数组。用于调用 <a href="#chat-fallbacks" style="color: #667eea;">/api/chat/upload-fallbacks</a> 异步上传兜底图。
+        </div>
+      </div>
+      
+      <!-- 上传兜底图 -->
+      <div class="api-item" id="chat-fallbacks">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/chat/upload-fallbacks</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">异步上传兜底图（JPEG），不阻塞 AI 响应。在聊天接口返回 <code>imageIds</code> 后调用，按 ID 更新对应图片的 <code>fallback_url</code>。</div>
+        
+        <h4>请求参数 (Body - multipart/form-data)</h4>
+        <table class="param-table">
+          <tr><th>字段名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>imageIds</td><td><span class="type">text</span></td><td><span class="required">是</span></td><td>JSON 字符串，图片 ID 数组，如 <code>'["id1","id2"]'</code>，与 fallbacks 按索引一一对应</td></tr>
+          <tr><td>fallbacks</td><td><span class="type">file[]</span></td><td><span class="required">是</span></td><td>兜底图文件（JPEG 格式），与 imageIds 按索引一一对应</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript</span>
+<pre>const formData = new FormData();
+formData.append('imageIds', JSON.stringify(['img-uuid-1', 'img-uuid-2']));
+formData.append('fallbacks', jpegFile1); // 对应 img-uuid-1
+formData.append('fallbacks', jpegFile2); // 对应 img-uuid-2
+
+await fetch('/api/chat/upload-fallbacks', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}` },
+  body: formData
+});</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": [
+    { "imageId": "img-uuid-1", "fallbackUrl": "http://scj.dolmo.top:3001/uploads/xxxxxxxx.jpg" },
+    { "imageId": "img-uuid-2", "fallbackUrl": "http://scj.dolmo.top:3001/uploads/yyyyyyyy.jpg" }
+  ]
+}</pre>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>400</td><td>缺少 imageIds 或 fallbacks</td><td>未传必要参数</td></tr>
+          <tr><td>401</td><td>未登录</td><td>未携带有效 token</td></tr>
+        </table>
+        
+        <div class="tip">
+          <div class="tip-title">调用时机</div>
+          此接口由前端在收到聊天接口的 <code>done</code> 事件后<strong>异步后台调用</strong>，不阻塞用户操作。即使上传失败也不影响主图显示，仅影响兜底能力。
+        </div>
       </div>
     </div>
     
@@ -856,24 +948,84 @@ while (true) {
         <h4>图片访问</h4>
         <table class="param-table">
           <tr><th>路径</th><th>说明</th></tr>
-          <tr><td><code>GET /uploads/{filename}</code></td><td>访问上传的图片文件</td></tr>
+          <tr><td><code>GET /uploads/{filename}</code></td><td>访问上传的图片文件（主图 .webp 和兜底图 .jpg 均通过此路径访问）</td></tr>
         </table>
         
         <h4>说明</h4>
-        <p style="color: #666; margin-bottom: 10px;">消息中 <code>images[].url</code> 返回的是<strong>完整 URL</strong>（如 <code>http://scj.dolmo.top:3001/uploads/xxxxxxxx.jpg</code>），前端直接使用该 URL 即可，无需自行拼接。</p>
+        <p style="color: #666; margin-bottom: 10px;">消息中 <code>images[].url</code> 和 <code>images[].fallbackUrl</code> 返回的都是<strong>完整 URL</strong>（如 <code>http://scj.dolmo.top:3001/uploads/xxxxxxxx.webp</code>），前端直接使用即可。</p>
         
-        <h4>images 数组字段</h4>
+        <h4>images 数组完整字段</h4>
         <table class="param-table">
           <tr><th>字段</th><th>类型</th><th>说明</th></tr>
           <tr><td>id</td><td><span class="type">string</span></td><td>图片 ID（UUID）</td></tr>
-          <tr><td>url</td><td><span class="type">string</span></td><td>图片完整访问地址</td></tr>
-          <tr><td>storageType</td><td><span class="type">string</span></td><td>存储类型，如 <code>"local"</code></td></tr>
+          <tr><td>url</td><td><span class="type">string</span></td><td>主图完整地址（通常为 WebP 格式）</td></tr>
+          <tr><td>fallbackUrl</td><td><span class="type">string</span></td><td>兜底图完整地址（JPEG 格式）。为空字符串 <code>""</code> 时表示无兜底图（旧数据或 base64 上传的图片）</td></tr>
+          <tr><td>storageType</td><td><span class="type">string</span></td><td>存储类型：<code>"local"</code>（本地）/ <code>"cos"</code>（腾讯云 COS）/ <code>"cdn"</code>（CDN）</td></tr>
+        </table>
+
+        <div class="tip">
+          <div class="tip-title">前端图片加载建议</div>
+          优先加载 <code>url</code>（WebP 主图），监听 <code>onerror</code> 事件，加载失败时切换到 <code>fallbackUrl</code>（JPEG 兜底图）。如果 <code>fallbackUrl</code> 为空则无需兜底逻辑。
+        </div>
+      </div>
+    </div>
+    
+    <!-- ==================== 数据库表结构 ==================== -->
+    <div class="section">
+      <div class="section-header"><h2>数据库表结构</h2></div>
+      <div class="api-item">
+        <div class="api-desc">后端启动时会自动创建以下表（如果不存在），并自动执行字段迁移（如添加 fallback_url 列）。</div>
+        
+        <h4>users 表</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">VARCHAR(36)</span></td><td>用户 ID（UUID），主键</td></tr>
+          <tr><td>username</td><td><span class="type">VARCHAR(50)</span></td><td>用户名，唯一索引</td></tr>
+          <tr><td>password</td><td><span class="type">VARCHAR(255)</span></td><td>密码（bcrypt 哈希）</td></tr>
+          <tr><td>nickname</td><td><span class="type">VARCHAR(100)</span></td><td>显示昵称</td></tr>
+          <tr><td>avatar</td><td><span class="type">VARCHAR(500)</span></td><td>头像 URL</td></tr>
+          <tr><td>created_at</td><td><span class="type">TIMESTAMP</span></td><td>创建时间</td></tr>
+          <tr><td>updated_at</td><td><span class="type">TIMESTAMP</span></td><td>更新时间（自动更新）</td></tr>
+        </table>
+        
+        <h4>conversations 表</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">VARCHAR(36)</span></td><td>会话 ID（UUID），主键</td></tr>
+          <tr><td>user_id</td><td><span class="type">VARCHAR(36)</span></td><td>所属用户 ID，外键 → users.id</td></tr>
+          <tr><td>title</td><td><span class="type">VARCHAR(200)</span></td><td>会话标题，默认"新对话"</td></tr>
+          <tr><td>created_at</td><td><span class="type">TIMESTAMP</span></td><td>创建时间</td></tr>
+          <tr><td>updated_at</td><td><span class="type">TIMESTAMP</span></td><td>更新时间（每发消息自动更新）</td></tr>
+        </table>
+        
+        <h4>messages 表</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">VARCHAR(36)</span></td><td>消息 ID（UUID），主键</td></tr>
+          <tr><td>conversation_id</td><td><span class="type">VARCHAR(36)</span></td><td>所属会话 ID，外键 → conversations.id</td></tr>
+          <tr><td>role</td><td><span class="type">ENUM('user','assistant')</span></td><td>消息角色</td></tr>
+          <tr><td>content</td><td><span class="type">TEXT</span></td><td>消息文本内容</td></tr>
+          <tr><td>created_at</td><td><span class="type">TIMESTAMP(3)</span></td><td>创建时间（毫秒精度，防止同秒消息排序错乱）</td></tr>
+        </table>
+        
+        <h4>images 表</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>id</td><td><span class="type">VARCHAR(36)</span></td><td>图片 ID（UUID），主键</td></tr>
+          <tr><td>message_id</td><td><span class="type">VARCHAR(36)</span></td><td>所属消息 ID，外键 → messages.id</td></tr>
+          <tr><td>storage_type</td><td><span class="type">ENUM('local','cdn','cos')</span></td><td>存储类型</td></tr>
+          <tr><td>url</td><td><span class="type">VARCHAR(500)</span></td><td>主图 URL（WebP 格式）</td></tr>
+          <tr><td>fallback_url</td><td><span class="type">VARCHAR(500)</span></td><td>兜底图 URL（JPEG 格式），默认空字符串</td></tr>
+          <tr><td>original_name</td><td><span class="type">VARCHAR(255)</span></td><td>原始文件名</td></tr>
+          <tr><td>mime_type</td><td><span class="type">VARCHAR(100)</span></td><td>MIME 类型</td></tr>
+          <tr><td>size</td><td><span class="type">INT</span></td><td>文件大小（字节）</td></tr>
+          <tr><td>created_at</td><td><span class="type">TIMESTAMP</span></td><td>创建时间</td></tr>
         </table>
       </div>
     </div>
     
     <footer>
-      <p>Chat App API 文档 | 共 15 个端点</p>
+      <p>Chat App API 文档 | 共 16 个端点 | 最后更新：2026-02-27</p>
     </footer>
   </div>
 </body>

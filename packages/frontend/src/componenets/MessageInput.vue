@@ -42,6 +42,7 @@
 import { ref } from 'vue'
 import ImageContainer from './imageContainer.vue'
 import { MessageImage } from '../models/Message.js'
+import { compressImage } from '../composables/useImageCompress.js'
 
 defineProps({
   isLoading: Boolean,
@@ -61,21 +62,27 @@ const onPreviewImageLoaded = () => {
   }
 }
 
-const handleFileChange = (e) => {
+const addCompressedImage = async (file) => {
+  const { file: compressed, url, fallbackFile } = await compressImage(file)
+  images.value.push(new MessageImage({ imageUrl: url, file: compressed, fallbackFile }))
+}
+
+const handleFileChange = async (e) => {
   const files = e.target.files
   if (files.length === 0) return
   for (const file of files) {
-    images.value.push(new MessageImage({ imageUrl: URL.createObjectURL(file), file }))
+    await addCompressedImage(file)
   }
+  e.target.value = ''
 }
 
-const handlePaste = (e) => {
+const handlePaste = async (e) => {
   const files = e.clipboardData.files
   if (files.length === 0) return
   for (const file of files) {
     if (file.type.startsWith('image/')) {
-      images.value.push(new MessageImage({ imageUrl: URL.createObjectURL(file), file }))
       e.preventDefault()
+      await addCompressedImage(file)
     }
   }
 }

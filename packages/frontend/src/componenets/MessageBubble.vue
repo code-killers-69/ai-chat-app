@@ -9,6 +9,7 @@
       v-for="image in message.images"
       :key="image.imageUrl || image.url"
       :image-url="image.imageUrl || image.url"
+      :fallback-url="image.fallbackUrl || ''"
       @onImageLoaded="$emit('imageLoaded')"
       :enable-loading-animation="true"
       size="200px"

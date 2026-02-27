@@ -5,17 +5,21 @@ export class MessageImage {
   /**
    * @param {object} options
    * @param {string} [options.id] - 图片ID（后端返回）
-   * @param {string} [options.url] - 图片URL（后端返回的 CDN/COS/本地地址）
+   * @param {string} [options.url] - 图片URL（后端返回的 CDN/COS/本地地址，webp）
+   * @param {string} [options.fallbackUrl] - 兜底图片URL（后端返回的 jpeg 地址）
    * @param {string} [options.imageUrl] - 图片URL（前端本地 blob URL）
    * @param {string} [options.storageType] - 存储类型：local | cdn | cos
-   * @param {File} [options.file] - 原始 File 对象（用于 multipart 上传）
+   * @param {File} [options.file] - 主图 File 对象（用于 multipart 上传，webp）
+   * @param {File} [options.fallbackFile] - 兜底 File 对象（jpeg）
    */
-  constructor({ id = '', url = '', imageUrl = '', storageType = 'local', file = null } = {}) {
+  constructor({ id = '', url = '', fallbackUrl = '', imageUrl = '', storageType = 'local', file = null, fallbackFile = null } = {}) {
     this.id = id;
     this.url = url;
+    this.fallbackUrl = fallbackUrl;
     this.imageUrl = imageUrl;
     this.storageType = storageType;
     this.file = file;
+    this.fallbackFile = fallbackFile;
   }
 
   /**

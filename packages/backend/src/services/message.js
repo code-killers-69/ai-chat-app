@@ -58,7 +58,7 @@ export const messageService = {
     // 获取消息
     const [messages] = await getPool().execute(
       `SELECT m.*, 
-        (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'url', i.url, 'storageType', i.storage_type))
+        (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'url', i.url, 'fallbackUrl', IFNULL(i.fallback_url, ''), 'storageType', i.storage_type))
          FROM images i WHERE i.message_id = m.id) as images
        FROM messages m 
        WHERE m.conversation_id = ? 
@@ -101,19 +101,20 @@ export const messageService = {
 
       const imageId = uuidv4();
       await getPool().execute(
-        'INSERT INTO images (id, message_id, storage_type, url, original_name, mime_type, size) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO images (id, message_id, storage_type, url, fallback_url, original_name, mime_type, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [
           imageId,
           messageId,
           storageType,
           url,
+          '',
           imageData.originalName,
           imageData.mimeType,
           size,
         ]
       );
 
-      savedImages.push({ id: imageId, url, storageType });
+      savedImages.push({ id: imageId, url, fallbackUrl: '', storageType });
     }
 
     // 更新会话时间
@@ -152,6 +153,17 @@ export const messageService = {
   },
 
   /**
+   * 更新图片的兜底 URL
+   */
+  async updateImageFallback(imageId, fallbackUrl) {
+    const [result] = await getPool().execute(
+      'UPDATE images SET fallback_url = ? WHERE id = ?',
+      [fallbackUrl, imageId]
+    );
+    return result.affectedRows > 0;
+  },
+
+  /**
    * 删除会话
    */
   async deleteConversation(conversationId, userId) {
@@ -167,6 +179,9 @@ export const messageService = {
     // 删除图片文件
     for (const image of images) {
       await storageService.deleteImage(image.url, image.storage_type);
+      if (image.fallback_url) {
+        await storageService.deleteImage(image.fallback_url, image.storage_type);
+      }
     }
 
     // 删除会话（级联删除消息和图片记录）
@@ -232,7 +247,7 @@ export const messageService = {
     
     const [messages] = await getPool().execute(
       `SELECT m.*, 
-        (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'url', i.url, 'storageType', i.storage_type))
+        (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'url', i.url, 'fallbackUrl', IFNULL(i.fallback_url, ''), 'storageType', i.storage_type))
          FROM images i WHERE i.message_id = m.id) as images
        FROM messages m 
        WHERE ${whereClause}

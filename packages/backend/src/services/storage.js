@@ -47,13 +47,19 @@ class StorageService {
    * @returns {Promise<{url: string, storageType: string, size: number}>}
    */
   async saveImage(data, originalName, mimeType) {
+    // 兜底：如果 MIME 类型无效或不支持，默认按 jpeg 处理
+    const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!mimeType || !supportedTypes.includes(mimeType)) {
+      mimeType = 'image/jpeg';
+    }
+
     const ext = this.getExtFromMime(mimeType);
     const filename = `${uuidv4()}${ext}`;
     
     let buffer = data;
     if (typeof data === 'string') {
-      // 处理 base64 数据
-      const base64Data = data.replace(/^data:image\/\w+;base64,/, '');
+      // 处理 base64 数据（兼容 webp/jpeg/png 等所有格式的 data URL）
+      const base64Data = data.replace(/^data:image\/[^;]+;base64,/, '');
       buffer = Buffer.from(base64Data, 'base64');
     }
 
