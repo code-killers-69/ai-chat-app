@@ -1,7 +1,7 @@
 <template>
   <div class="questionTank" :class="[message.role === 'you' ? 'yourStyle' : 'myStyle']">
     <div class="articleArea">
-      <div v-if="message.role === 'you'" class="markdown-body" v-html="renderMarkdown(content)"></div>
+      <div v-if="message.role === 'you'" class="markdown-body" v-html="renderedHtml"></div>
       <div v-else class="user-message" v-html="escapeHtml(content)"></div>
       <span v-if="isStreaming" class="cursor">|</span>
     </div>
@@ -22,10 +22,11 @@
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue'
 import ImageContainer from './imageContainer.vue'
 import { useMarkdown } from '../composables/useMarkdown.js'
 
-defineProps({
+const props = defineProps({
   message: {
     type: Object,
     required: true,
@@ -42,7 +43,33 @@ defineProps({
 
 defineEmits(['imageLoaded'])
 
-const { renderMarkdown, escapeHtml } = useMarkdown()
+const { renderMarkdown, renderMarkdownAsync, escapeHtml } = useMarkdown()
+
+// Worker 异步渲染结果缓存
+const workerHtml = ref(null)
+
+// 流式时用主线程同步渲染，流式结束后优先用 Worker 结果
+const renderedHtml = computed(() => {
+  if (workerHtml.value !== null && !props.isStreaming) {
+    return workerHtml.value
+  }
+  return renderMarkdown(props.content)
+})
+
+// 监听流式结束：触发 Worker 异步渲染最终结果
+watch(() => props.isStreaming, async (streaming, wasStreaming) => {
+  if (wasStreaming && !streaming && props.content) {
+    const html = await renderMarkdownAsync(props.content)
+    workerHtml.value = html
+  }
+})
+
+// 非流式消息（历史加载）：直接走 Worker
+if (!props.isStreaming && props.message.role === 'you' && props.content) {
+  renderMarkdownAsync(props.content).then(html => {
+    workerHtml.value = html
+  })
+}
 </script>
 
 <style scoped>
