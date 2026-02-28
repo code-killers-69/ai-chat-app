@@ -1,27 +1,123 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite App</title>
+    <title>Chat App</title>
+    <!-- DNS 预解析 + 预连接：加速后端 API 请求 -->
+    <link rel="dns-prefetch" href="//scj.dolmo.top" />
+    <link rel="preconnect" href="http://scj.dolmo.top:3001" crossorigin />
+    <style>
+      /* 关键 CSS 内联：消除 FOUC（无样式闪烁） */
+      :root {
+        --primary-color: #d3adf7;
+        --primary-hover: #b37feb;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 100%;
+      }
+
+      /* ========== 骨架屏样式 ========== */
+      .skeleton {
+        display: flex;
+        height: 100vh;
+        width: 100%;
+      }
+      .skeleton-sidebar {
+        width: 240px;
+        background: #f5f5f5;
+        border-right: 1px solid #e0e0e0;
+        flex-shrink: 0;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      .skeleton-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .skeleton-header {
+        height: 56px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+      }
+      .skeleton-messages {
+        flex: 1;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        justify-content: flex-end;
+      }
+      .skeleton-input {
+        height: 60px;
+        border-top: 1px solid #e0e0e0;
+        margin: 0 20px 40px;
+        border-radius: 12px;
+        background: #f5f5f5;
+      }
+      /* 骨架占位块 */
+      .sk-block {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: sk-shimmer 1.5s infinite;
+        border-radius: 8px;
+      }
+      .sk-btn { height: 40px; }
+      .sk-item { height: 42px; margin-top: 8px; }
+      .sk-title { width: 120px; height: 20px; }
+      .sk-bubble-left {
+        width: 55%;
+        height: 60px;
+        align-self: flex-start;
+        border-radius: 10px;
+      }
+      .sk-bubble-right {
+        width: 40%;
+        height: 40px;
+        align-self: flex-end;
+        border-radius: 10px;
+        background: linear-gradient(90deg, #e8d5f5 25%, #d3adf7 50%, #e8d5f5 75%);
+        background-size: 200% 100%;
+        animation: sk-shimmer 1.5s infinite;
+      }
+      @keyframes sk-shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- 骨架屏：Vue 挂载后自动替换 -->
+      <div class="skeleton">
+        <div class="skeleton-sidebar">
+          <div class="sk-block sk-btn"></div>
+          <div class="sk-block sk-item"></div>
+          <div class="sk-block sk-item"></div>
+          <div class="sk-block sk-item"></div>
+        </div>
+        <div class="skeleton-main">
+          <div class="skeleton-header">
+            <div class="sk-block sk-title"></div>
+          </div>
+          <div class="skeleton-messages">
+            <div class="sk-block sk-bubble-right"></div>
+            <div class="sk-block sk-bubble-left"></div>
+            <div class="sk-block sk-bubble-right"></div>
+            <div class="sk-block sk-bubble-left"></div>
+          </div>
+          <div class="skeleton-input"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
-  <style>
-    :root {
-      --primary-color: #d3adf7;
-      --primary-hover: #b37feb;
-    }
-
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100%;
-    }
-  </style>
 </html>

@@ -43,7 +43,7 @@ importers:
 
   packages/frontend:
     dependencies:
-      '@chat-app/vue-lazy-load':
+      '@code-killer/vue-lazy-load':
         specifier: workspace:*
         version: link:../vue-lazy-load
       marked:

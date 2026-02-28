@@ -265,14 +265,20 @@ defineExpose({
     overflow-y: auto;
     scrollbar-width: none;
     position: relative;
+    /* 告知浏览器此区域独立布局，跳过外部重排 */
+    contain: strict;
+    /* 提示 GPU 预备合成层，滚动更流畅 */
+    will-change: scroll-position;
 }
 
 .virtual-list-container {
     width: 100%;
+    contain: layout style;
 }
 
 .virtual-item {
     box-sizing: border-box;
+    contain: layout style paint;
 }
 
 .loading-indicator {

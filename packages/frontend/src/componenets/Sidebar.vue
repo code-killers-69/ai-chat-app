@@ -296,6 +296,7 @@ defineExpose({
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  contain: content;
 }
 
 .conversation-item {

@@ -1,9 +1,9 @@
 /**
- * @chat-app/vue-lazy-load
+ * @code-killer/vue-lazy-load
  * Vue 3 图片懒加载插件
  *
  * 使用方式：
- *   import { VueLazyLoad } from '@chat-app/vue-lazy-load'
+ *   import { VueLazyLoad } from '@code-killer/vue-lazy-load'
  *   app.use(VueLazyLoad, { rootMargin: '200px', loading: '', error: '' })
  *
  * 指令用法：

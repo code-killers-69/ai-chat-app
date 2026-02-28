@@ -79,6 +79,8 @@ const showDeleteBtn = ref(false)
     overflow: hidden;
     position: relative;
     background-color: #f0f0f0;
+    /* 固定尺寸容器，独立渲染 */
+    contain: strict;
 }
 
 .waitBlock {
@@ -98,6 +100,8 @@ const showDeleteBtn = ref(false)
     object-fit: cover;
     border: none;
     border-radius: 5px;
+    /* 避免图片解码阻塞主线程 */
+    content-visibility: auto;
 }
 
 @keyframes spin {
