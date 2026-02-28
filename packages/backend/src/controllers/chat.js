@@ -1,6 +1,28 @@
 import { aiService, AVAILABLE_MODELS } from '../services/ai.js';
 import { messageService } from '../services/message.js';
 import { storageService } from '../services/storage.js';
+import { v4 as uuidv4 } from 'uuid';
+
+// ─── SSE Stream Buffer（断线重连用）────────────────────────
+
+const STREAM_BUFFER_TTL = 5 * 60 * 1000; // 5 分钟过期
+
+/**
+ * 每个活跃的流式会话缓冲区
+ * key: streamId
+ * value: { events: [{id, data}], createdAt, completed }
+ */
+const streamBuffers = new Map();
+
+// 定期清理过期的缓冲区
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, buf] of streamBuffers) {
+    if (now - buf.createdAt > STREAM_BUFFER_TTL) {
+      streamBuffers.delete(id);
+    }
+  }
+}, 60_000);
 
 /**
  * 统一处理图片：同时兼容 multipart 上传和 JSON base64 两种方式
@@ -60,11 +82,13 @@ function extractImages(req) {
 /**
  * 流式聊天（SSE）
  * 支持匿名和登录用户，登录用户自动持久化会话和消息
+ * 支持断线重连：每个 event 带 id，客户端可用 Last-Event-ID 续传
  */
 export async function streamChat(req, res) {
   const { message, conversationId, model } = req.body;
   const userId = req.user?.userId;
   const { imageDataList, base64Images } = extractImages(req);
+  const lastEventId = req.headers['last-event-id'];
 
   // 设置 SSE 头
   res.setHeader('Content-Type', 'text/event-stream');
@@ -72,22 +96,65 @@ export async function streamChat(req, res) {
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
 
+  // ─── 断线重连：如果客户端带了 Last-Event-ID，尝试从缓冲区续发 ───
+  if (lastEventId) {
+    const [streamId, seqStr] = lastEventId.split(':');
+    const lastSeq = parseInt(seqStr, 10) || 0;
+    const buffer = streamBuffers.get(streamId);
+
+    if (buffer) {
+      // 从断点续发
+      const missedEvents = buffer.events.filter(e => {
+        const eSeq = parseInt(e.id.split(':')[1], 10);
+        return eSeq > lastSeq;
+      });
+      for (const event of missedEvents) {
+        res.write(`id: ${event.id}\ndata: ${event.data}\n\n`);
+      }
+      // 如果流已完成，直接结束
+      if (buffer.completed) {
+        res.end();
+        return;
+      }
+      // 流还在进行中，但我们无法"接管"原始流 — 通知客户端重试
+      // 实际上原始连接可能已断，AI 流也已结束。返回缓冲的就够了。
+      res.end();
+      return;
+    }
+    // 缓冲区不存在（已过期），客户端需要重新发起完整请求
+  }
+
+  const streamId = uuidv4();
+  const buffer = { events: [], createdAt: Date.now(), completed: false };
+  streamBuffers.set(streamId, buffer);
+  let seq = 0;
+
+  /** 写入一个带 id 的 SSE 事件，同时存入缓冲区 */
+  function writeEvent(data) {
+    const eventId = `${streamId}:${seq++}`;
+    const jsonStr = JSON.stringify(data);
+    buffer.events.push({ id: eventId, data: jsonStr });
+    res.write(`id: ${eventId}\ndata: ${jsonStr}\n\n`);
+  }
+
   let dbConversationId = conversationId;
 
   try {
     let savedImageIds = [];
 
-    // 如果用户已登录，进行持久化
     if (userId) {
       if (!dbConversationId) {
         const conv = await messageService.createConversation(userId, (message || '').slice(0, 50) || '新对话');
         dbConversationId = conv.id;
-        res.write(`data: ${JSON.stringify({ type: 'conversation', conversationId: dbConversationId })}\n\n`);
+        writeEvent({ type: 'conversation', conversationId: dbConversationId });
       }
 
       const savedMsg = await messageService.saveUserMessage(dbConversationId, message, imageDataList);
       savedImageIds = (savedMsg.images || []).map(img => img.id);
     }
+
+    // 发送 streamId 给客户端（用于断线重连标识）
+    writeEvent({ type: 'stream-id', streamId });
 
     let fullResponse = '';
 
@@ -99,7 +166,7 @@ export async function streamChat(req, res) {
       model,
       onChunk: (chunk) => {
         fullResponse += chunk;
-        res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+        writeEvent({ type: 'chunk', content: chunk });
       },
       onComplete: async (response) => {
         if (userId && dbConversationId) {
@@ -109,13 +176,15 @@ export async function streamChat(req, res) {
         if (savedImageIds.length > 0) {
           doneData.imageIds = savedImageIds;
         }
-        res.write(`data: ${JSON.stringify(doneData)}\n\n`);
+        writeEvent(doneData);
+        buffer.completed = true;
         res.end();
       },
     });
   } catch (error) {
     console.error('Stream chat error:', error);
-    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    writeEvent({ type: 'error', message: error.message });
+    buffer.completed = true;
     res.end();
   }
 }

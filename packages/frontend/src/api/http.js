@@ -254,11 +254,11 @@ class HttpClient {
    * SSE 流式请求（返回 Response 对象，由调用方处理 stream）
    */
   async requestStream(url, options = {}) {
-    const { method = 'POST', body, formData, auth = true } = options;
+    const { method = 'POST', body, formData, auth = true, headers: extraHeaders } = options;
     const fullUrl = `${API_BASE}${url}`;
 
     const doFetch = (token) => {
-      const headers = {};
+      const headers = { ...extraHeaders };
       if (auth && token) {
         headers['Authorization'] = `Bearer ${token}`;
       }

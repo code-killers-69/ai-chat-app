@@ -79,16 +79,28 @@ class ChatAPI {
   }
 
   /**
-   * 流式发送消息
+   * 流式发送消息（支持断线重连 + 消息幂等）
+   *
+   * 重连机制：
+   * - 首次请求获取 streamId
+   * - 网络断开后，用 Last-Event-ID 重连，从断点续收
+   * - 基于 seq 的幂等去重，避免重复 chunk
    */
   async streamMessage({ message, images = [], onChunk, onComplete, onError, onConversationCreated }) {
     const originalFiles = images
       .filter(img => img.originalFile)
       .map(img => img.originalFile);
 
-    try {
-      let streamOptions;
+    const MAX_RECONNECT = 3;
+    const RECONNECT_DELAY = 1000;
 
+    let streamId = null;
+    let lastEventId = null;
+    let processedSeqs = new Set(); // 幂等去重
+    let reconnectCount = 0;
+    let completed = false;
+
+    const buildStreamOptions = () => {
       if (images.length > 0) {
         const formData = new FormData();
         formData.append('message', message || '');
@@ -101,44 +113,80 @@ class ChatAPI {
         for (const img of images) {
           formData.append('images', img.file);
         }
-        streamOptions = { formData };
-      } else {
-        const body = { message, conversationId: this.conversationId };
-        if (this.selectedModel) {
-          body.model = this.selectedModel;
-        }
-        streamOptions = { body };
+        return { formData };
       }
+      const body = { message, conversationId: this.conversationId };
+      if (this.selectedModel) {
+        body.model = this.selectedModel;
+      }
+      return { body };
+    };
 
-      const response = await http.requestStream('/chat/stream', streamOptions);
+    const processStream = async () => {
+      try {
+        const streamOptions = buildStreamOptions();
+        // 断线重连时带上 Last-Event-ID
+        if (lastEventId) {
+          streamOptions.headers = { 'Last-Event-ID': lastEventId };
+        }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+        const response = await http.requestStream('/chat/stream', streamOptions);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split('\n\n');
+          buffer = events.pop() || '';
+
+          for (const event of events) {
+            // 解析 SSE 标准格式：id: xxx\ndata: xxx
+            let eventId = null;
+            let eventData = null;
+
+            for (const line of event.split('\n')) {
+              if (line.startsWith('id: ')) {
+                eventId = line.slice(4);
+              } else if (line.startsWith('data: ')) {
+                eventData = line.slice(6);
+              }
+            }
+
+            if (!eventData) continue;
+
+            // 更新 lastEventId（用于重连）
+            if (eventId) {
+              lastEventId = eventId;
+
+              // 幂等去重：跳过已处理的 seq
+              const seq = parseInt(eventId.split(':')[1], 10);
+              if (processedSeqs.has(seq)) continue;
+              processedSeqs.add(seq);
+            }
+
             try {
-              const data = JSON.parse(line.slice(6));
-              if (data.type === 'conversation') {
+              const data = JSON.parse(eventData);
+
+              if (data.type === 'stream-id') {
+                streamId = data.streamId;
+              } else if (data.type === 'conversation') {
                 this.conversationId = data.conversationId;
                 onConversationCreated?.(data.conversationId);
               } else if (data.type === 'chunk') {
                 onChunk?.(data.content);
               } else if (data.type === 'done') {
+                completed = true;
                 onComplete?.(data.content);
                 if (data.imageIds && data.imageIds.length > 0 && originalFiles.length > 0) {
                   this._uploadFallbacks(data.imageIds, originalFiles);
                 }
               } else if (data.type === 'error') {
+                completed = true;
                 onError?.(new Error(data.message));
               }
             } catch (e) {
@@ -146,11 +194,23 @@ class ChatAPI {
             }
           }
         }
+      } catch (error) {
+        // 如果已完成或重连次数用尽，抛出错误
+        if (completed) return;
+
+        if (reconnectCount < MAX_RECONNECT && lastEventId) {
+          reconnectCount++;
+          console.info(`SSE 断线，第 ${reconnectCount} 次重连...`);
+          await new Promise(r => setTimeout(r, RECONNECT_DELAY * reconnectCount));
+          return processStream(); // 递归重连
+        }
+
+        console.error('Stream message error:', error);
+        onError?.(error);
       }
-    } catch (error) {
-      console.error('Stream message error:', error);
-      onError?.(error);
-    }
+    };
+
+    await processStream();
   }
 
   /**
