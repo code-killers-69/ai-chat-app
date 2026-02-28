@@ -8,24 +8,17 @@
                 <div class="waitBlock" v-if="!isLoaded && enableLoadingAnimation" :key="`${imageUrl}-waitBlock`">
                     <div class="spinner"></div>
                 </div>
-                <!-- 有兜底图：主图加载失败时自动切换到 fallback -->
-                <img v-if="resolvedSrc && resolvedFallback"
-                    :src="useFallback ? resolvedFallback : resolvedSrc"
+                <img v-lazy="lazyBinding"
                     class="imageBlock" v-show="isLoaded"
-                    :key="`${imageUrl}-imageBlock-${useFallback}`"
-                    @load="onImageLoaded"
-                    @error="onMainImageError" />
-                <!-- 无兜底图：直接 <img>（本地预览 / GIF / 旧数据） -->
-                <img v-else-if="resolvedSrc" :src="resolvedSrc" class="imageBlock" v-show="isLoaded"
-                    :key="`${imageUrl}-imageBlock`" @load="onImageLoaded" />
+                    :key="`${imageUrl}-imageBlock`"
+                    @load="onImageLoaded" />
             </TransitionGroup>
         </div>
     </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue';
-import { getCachedImage, getCachedImageSync } from '@/composables/useImageCache.js';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     imageUrl: {
@@ -52,19 +45,17 @@ const props = defineProps({
 
 const emit = defineEmits(['onImageLoaded', 'onImageDeleted'])
 const isLoaded = ref(false)
-const resolvedSrc = ref(null)
-const resolvedFallback = ref(null)
-const useFallback = ref(false)
+
+const lazyBinding = computed(() => {
+    if (props.fallbackUrl) {
+        return { src: props.imageUrl, fallback: props.fallbackUrl }
+    }
+    return props.imageUrl
+})
 
 const onImageLoaded = () => {
     isLoaded.value = true
     emit('onImageLoaded')
-}
-
-const onMainImageError = () => {
-    if (!useFallback.value && resolvedFallback.value) {
-        useFallback.value = true
-    }
 }
 
 const onDelete = () => {
@@ -73,70 +64,6 @@ const onDelete = () => {
 
 const imageContainer = ref(null)
 const showDeleteBtn = ref(false)
-let lazyObserver = null
-
-async function loadImage() {
-    if (!props.imageUrl) return
-
-    // 先同步检查缓存，有的话直接用（不闪 loading）
-    const cached = getCachedImageSync(props.imageUrl)
-    if (cached) {
-        resolvedSrc.value = cached
-        if (props.fallbackUrl) {
-            resolvedFallback.value = getCachedImageSync(props.fallbackUrl) || await getCachedImage(props.fallbackUrl)
-        }
-        return
-    }
-
-    // 没有缓存，fetch 并缓存为 blob URL
-    const blobUrl = await getCachedImage(props.imageUrl)
-    resolvedSrc.value = blobUrl
-    if (props.fallbackUrl) {
-        resolvedFallback.value = await getCachedImage(props.fallbackUrl)
-    }
-}
-
-onMounted(() => {
-    if (!props.imageUrl) return
-
-    // 如果已有缓存，直接同步使用，不需要 observer
-    const cached = getCachedImageSync(props.imageUrl)
-    if (cached) {
-        resolvedSrc.value = cached
-        if (props.fallbackUrl) {
-            const cachedFb = getCachedImageSync(props.fallbackUrl)
-            if (cachedFb) {
-                resolvedFallback.value = cachedFb
-            } else {
-                getCachedImage(props.fallbackUrl).then(url => { resolvedFallback.value = url })
-            }
-        }
-        return
-    }
-
-    // 没有缓存 → 用 IntersectionObserver 实现真正的懒加载
-    lazyObserver = new IntersectionObserver(
-        (entries) => {
-            for (const entry of entries) {
-                if (entry.isIntersecting) {
-                    lazyObserver.unobserve(entry.target)
-                    lazyObserver = null
-                    loadImage()
-                    break
-                }
-            }
-        },
-        { rootMargin: '200px' }
-    )
-    lazyObserver.observe(imageContainer.value)
-})
-
-onUnmounted(() => {
-    if (lazyObserver && imageContainer.value) {
-        lazyObserver.disconnect()
-        lazyObserver = null
-    }
-})
 </script>
 
 <style scoped>
