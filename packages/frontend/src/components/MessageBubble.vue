@@ -23,7 +23,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import ImageContainer from './imageContainer.vue'
+import ImageContainer from './ImageContainer.vue'
 import { useMarkdown } from '../composables/useMarkdown.js'
 
 const props = defineProps({

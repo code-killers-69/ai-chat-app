@@ -1,4 +1,5 @@
-import fs from 'fs';
+import fs from 'fs/promises';
+import { existsSync, mkdirSync } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -34,8 +35,8 @@ class StorageService {
 
   ensureLocalDir() {
     const uploadDir = path.resolve(this.localPath);
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    if (!existsSync(uploadDir)) {
+      mkdirSync(uploadDir, { recursive: true });
     }
   }
 
@@ -77,7 +78,7 @@ class StorageService {
 
   async saveToLocal(buffer, filename, mimeType) {
     const filePath = path.join(path.resolve(this.localPath), filename);
-    fs.writeFileSync(filePath, buffer);
+    await fs.writeFile(filePath, buffer);
     
     return {
       url: `${this.baseUrl}/${filename}`,
@@ -117,9 +118,7 @@ class StorageService {
     if (storageType === 'local') {
       const filename = path.basename(url);
       const filePath = path.join(path.resolve(this.localPath), filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      await fs.access(filePath).then(() => fs.unlink(filePath)).catch(() => {});
     }
     // TODO: 实现 COS/CDN 删除
   }

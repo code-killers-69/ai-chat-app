@@ -25,9 +25,9 @@
 
 <script setup>
 import { ref, defineAsyncComponent } from 'vue'
-import Sidebar from './componenets/Sidebar.vue'
-import ChatArea from './componenets/ChatArea.vue'
-const AuthModal = defineAsyncComponent(() => import('./componenets/AuthModal.vue'))
+import Sidebar from './components/Sidebar.vue'
+import ChatArea from './components/ChatArea.vue'
+const AuthModal = defineAsyncComponent(() => import('./components/AuthModal.vue'))
 import { chatAPI } from './api/chat.js'
 
 // 认证状态

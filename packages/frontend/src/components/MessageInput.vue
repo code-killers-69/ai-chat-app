@@ -40,7 +40,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import ImageContainer from './imageContainer.vue'
+import ImageContainer from './ImageContainer.vue'
 import { MessageImage } from '../models/Message.js'
 import { compressImage } from '../composables/useImageCompress.js'
 
