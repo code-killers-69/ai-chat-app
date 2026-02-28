@@ -8,12 +8,16 @@ import {
   updateConversation,
   deleteConversation,
   getMessages,
+  searchMessages,
 } from '../controllers/conversation.js';
 
 export const conversationRouter = Router();
 
 // 所有路由都需要登录
 conversationRouter.use(authMiddleware);
+
+// 搜索路由必须在 /:id 之前，否则 "search" 会被当作 :id
+conversationRouter.get('/search', searchMessages);
 
 conversationRouter.get('/', getConversations);
 conversationRouter.post('/', createConversation);

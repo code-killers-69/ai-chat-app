@@ -122,3 +122,27 @@ export async function getMessages(req, res) {
     res.status(500).json({ success: false, error: '获取消息失败' });
   }
 }
+
+/**
+ * 全文搜索消息
+ * GET /api/conversations/search?q=keyword&limit=20&offset=0
+ */
+export async function searchMessages(req, res) {
+  const { q, limit, offset } = req.query;
+
+  if (!q || !q.trim()) {
+    return res.status(400).json({ success: false, error: '搜索关键词不能为空' });
+  }
+
+  try {
+    const result = await messageService.searchMessages(
+      req.user.userId,
+      q.trim(),
+      { limit: limit ? parseInt(limit, 10) : 20, offset: offset ? parseInt(offset, 10) : 0 }
+    );
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Search messages error:', error);
+    res.status(500).json({ success: false, error: '搜索失败' });
+  }
+}

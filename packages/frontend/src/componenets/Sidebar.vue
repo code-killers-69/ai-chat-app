@@ -1,43 +1,59 @@
 <template>
   <div class="sidebar" v-if="isLoggedIn">
-    <div class="sidebar-header">
-      <button @click="handleNewChat" class="newChatBtn">+ 新会话</button>
-    </div>
-    <div class="conversation-list">
-      <div 
-        v-for="conv in conversationList" 
-        :key="conv.id" 
-        class="conversation-item"
-        :class="{ active: currentConversationId === conv.id }"
-        @click="handleSwitch(conv.id)"
-        @mousedown="startLongPress(conv)"
-        @mouseup="cancelLongPress"
-        @mouseleave="cancelLongPress"
-        @touchstart="startLongPress(conv)"
-        @touchend="cancelLongPress"
-      >
-        <input
-          v-if="editingId === conv.id"
-          ref="editInputRef"
-          v-model="editingTitle"
-          class="edit-input"
-          @click.stop
-          @blur="finishEdit(conv)"
-          @keyup.enter="finishEdit(conv)"
-          @keyup.esc="cancelEdit"
-        />
-        <span v-else class="conv-title">{{ conv.title || '新对话' }}</span>
-        <button 
-          v-if="editingId !== conv.id"
-          class="delete-btn" 
-          @click.stop="handleDelete(conv.id)"
-          title="删除会话"
-        >×</button>
+    <!-- 搜索面板 -->
+    <SearchPanel
+      v-if="showSearch"
+      :visible="showSearch"
+      @close="showSearch = false"
+      @select="handleSearchSelect"
+    />
+
+    <!-- 正常侧边栏内容 -->
+    <template v-else>
+      <div class="sidebar-header">
+        <button @click="handleNewChat" class="newChatBtn">+ 新会话</button>
+        <button @click="showSearch = true" class="searchBtn" title="搜索消息">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </button>
       </div>
-      <div v-if="conversationList.length === 0" class="no-conversations">
-        暂无会话记录
+      <div class="conversation-list">
+        <div 
+          v-for="conv in conversationList" 
+          :key="conv.id" 
+          class="conversation-item"
+          :class="{ active: currentConversationId === conv.id }"
+          @click="handleSwitch(conv.id)"
+          @mousedown="startLongPress(conv)"
+          @mouseup="cancelLongPress"
+          @mouseleave="cancelLongPress"
+          @touchstart="startLongPress(conv)"
+          @touchend="cancelLongPress"
+        >
+          <input
+            v-if="editingId === conv.id"
+            ref="editInputRef"
+            v-model="editingTitle"
+            class="edit-input"
+            @click.stop
+            @blur="finishEdit(conv)"
+            @keyup.enter="finishEdit(conv)"
+            @keyup.esc="cancelEdit"
+          />
+          <span v-else class="conv-title">{{ conv.title || '新对话' }}</span>
+          <button 
+            v-if="editingId !== conv.id"
+            class="delete-btn" 
+            @click.stop="handleDelete(conv.id)"
+            title="删除会话"
+          >×</button>
+        </div>
+        <div v-if="conversationList.length === 0" class="no-conversations">
+          暂无会话记录
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -45,12 +61,13 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { chatAPI } from '../api/chat.js'
 import { Conversation } from '../models/Conversation.js'
+import SearchPanel from './SearchPanel.vue'
 
 const props = defineProps({
   isLoggedIn: Boolean
 })
 
-const emit = defineEmits(['newChat', 'switchConversation', 'conversationInit', 'conversationCached', 'conversationDeleted'])
+const emit = defineEmits(['newChat', 'switchConversation', 'conversationInit', 'conversationCached', 'conversationDeleted', 'searchSelect'])
 
 const conversationList = ref([])
 const currentConversationId = ref(null)
@@ -67,6 +84,19 @@ const editingTitle = ref('')
 const editInputRef = ref(null)
 let longPressTimer = null
 const LONG_PRESS_DURATION = 500 // 长按时间 500ms
+
+// 搜索状态
+const showSearch = ref(false)
+
+const handleSearchSelect = (result) => {
+  showSearch.value = false
+  // 切换到对应会话并定位消息
+  emit('searchSelect', result)
+  // 也执行会话切换
+  if (result.conversationId !== currentConversationId.value) {
+    loadConversation(result.conversationId)
+  }
+}
 
 // 长按开始
 const startLongPress = (conv) => {
@@ -275,10 +305,12 @@ defineExpose({
 .sidebar-header {
   padding: 16px;
   border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  gap: 8px;
 }
 
 .newChatBtn {
-  width: 100%;
+  flex: 1;
   padding: 10px;
   background: var(--primary-color);
   color: white;
@@ -290,6 +322,23 @@ defineExpose({
 
 .newChatBtn:hover {
   background: var(--primary-hover);
+}
+
+.searchBtn {
+  padding: 10px;
+  background: #e8e8e8;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.searchBtn:hover {
+  background: #d9d9d9;
+  color: #333;
 }
 
 .conversation-list {

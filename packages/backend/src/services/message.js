@@ -306,4 +306,55 @@ export const messageService = {
       },
     };
   },
+
+  /**
+   * 全文搜索消息
+   * @param {string} userId - 用户 ID
+   * @param {string} keyword - 搜索关键词
+   * @param {object} options
+   * @param {number} [options.limit=20] - 返回数量
+   * @param {number} [options.offset=0] - 偏移量
+   * @returns {Promise<{messages: Array, total: number}>}
+   */
+  async searchMessages(userId, keyword, options = {}) {
+    const safeLimit = Math.max(1, Math.min(parseInt(options.limit, 10) || 20, 50));
+    const safeOffset = Math.max(0, parseInt(options.offset, 10) || 0);
+
+    // 用 FULLTEXT 搜索，要求 messages 属于当前用户的会话
+    const [messages] = await getPool().execute(
+      `SELECT m.id, m.conversation_id, m.role, m.content, m.created_at,
+              c.title as conversation_title,
+              MATCH(m.content) AGAINST(? IN BOOLEAN MODE) as relevance
+       FROM messages m
+       JOIN conversations c ON c.id = m.conversation_id AND c.user_id = ?
+       WHERE MATCH(m.content) AGAINST(? IN BOOLEAN MODE)
+       ORDER BY relevance DESC, m.created_at DESC
+       LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+      [keyword, userId, keyword]
+    );
+
+    // 总数
+    const [countResult] = await getPool().execute(
+      `SELECT COUNT(*) as total
+       FROM messages m
+       JOIN conversations c ON c.id = m.conversation_id AND c.user_id = ?
+       WHERE MATCH(m.content) AGAINST(? IN BOOLEAN MODE)`,
+      [userId, keyword]
+    );
+
+    return {
+      messages: messages.map(m => ({
+        id: m.id,
+        conversationId: m.conversation_id,
+        conversationTitle: m.conversation_title,
+        role: m.role,
+        content: m.content,
+        createdAt: m.created_at,
+        relevance: m.relevance,
+      })),
+      total: countResult[0].total,
+      limit: safeLimit,
+      offset: safeOffset,
+    };
+  },
 };

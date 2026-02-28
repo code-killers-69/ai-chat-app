@@ -51,6 +51,21 @@ class ConversationAPI {
     const qs = params.toString();
     return http.request(`/conversations/${id}/messages${qs ? '?' + qs : ''}`);
   }
+
+  /**
+   * 全文搜索消息
+   * @param {string} keyword - 搜索关键词
+   * @param {object} options
+   * @param {number} [options.limit=20]
+   * @param {number} [options.offset=0]
+   * @returns {Promise<{messages: Array, total: number, limit: number, offset: number}>}
+   */
+  async searchMessages(keyword, options = {}) {
+    const params = new URLSearchParams({ q: keyword });
+    if (options.limit) params.set('limit', options.limit);
+    if (options.offset) params.set('offset', options.offset);
+    return http.request(`/conversations/search?${params.toString()}`);
+  }
 }
 
 /**

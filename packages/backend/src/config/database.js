@@ -95,6 +95,11 @@ export async function initDatabase() {
       `ALTER TABLE images ADD COLUMN fallback_url VARCHAR(500) DEFAULT '' AFTER url`
     ).catch(() => { /* 字段已存在则忽略 */ });
 
+    // 升级：为 messages.content 添加全文索引（支持中文搜索需要 ngram parser）
+    await connection.execute(
+      `ALTER TABLE messages ADD FULLTEXT INDEX ft_content (content) WITH PARSER ngram`
+    ).catch(() => { /* 索引已存在则忽略 */ });
+
     console.log('Database tables initialized successfully');
   } finally {
     connection.release();
