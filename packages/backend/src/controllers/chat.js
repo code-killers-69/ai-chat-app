@@ -175,7 +175,7 @@ export async function sendMessage(req, res) {
     });
   } catch (error) {
     console.error('Chat error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '服务器内部错误' });
   }
 }
 
@@ -300,6 +300,6 @@ export async function uploadFallbacks(req, res) {
     res.json({ success: true, data: results });
   } catch (error) {
     console.error('Upload fallbacks error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '服务器内部错误' });
   }
 }

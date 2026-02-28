@@ -8,7 +8,7 @@ export async function getConversations(req, res) {
     const conversations = await messageService.getConversations(req.user.userId);
     res.json({ success: true, data: conversations });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '获取会话列表失败' });
   }
 }
 
@@ -22,7 +22,7 @@ export async function createConversation(req, res) {
     const conversation = await messageService.createConversation(req.user.userId, title);
     res.json({ success: true, data: conversation });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '创建会话失败' });
   }
 }
 
@@ -42,7 +42,7 @@ export async function getConversationInfo(req, res) {
 
     res.json({ success: true, data: conversation });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '获取会话信息失败' });
   }
 }
 
@@ -62,7 +62,7 @@ export async function getConversationDetail(req, res) {
 
     res.json({ success: true, data: conversation });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '获取会话详情失败' });
   }
 }
 
@@ -80,7 +80,7 @@ export async function updateConversation(req, res) {
     await messageService.updateConversationTitle(req.params.id, req.user.userId, title);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '更新会话标题失败' });
   }
 }
 
@@ -92,7 +92,7 @@ export async function deleteConversation(req, res) {
     await messageService.deleteConversation(req.params.id, req.user.userId);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '删除会话失败' });
   }
 }
 
@@ -119,6 +119,6 @@ export async function getMessages(req, res) {
 
     res.json({ success: true, data: result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: '获取消息失败' });
   }
 }

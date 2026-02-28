@@ -19,7 +19,7 @@
         class="inputMessage"
         contenteditable="true"
         :class="{ disabled: isLoading }"
-        @keyup.enter.exact="handleSend"
+        @keydown.enter.exact.prevent="handleSend"
         @paste="handlePaste"
         data-placeholder="请输入文本"
       ></div>
@@ -63,8 +63,12 @@ const onPreviewImageLoaded = () => {
 }
 
 const addCompressedImage = async (file) => {
-  const { file: compressed, url, originalFile } = await compressImage(file)
-  images.value.push(new MessageImage({ imageUrl: url, file: compressed, originalFile }))
+  try {
+    const { file: compressed, url, originalFile } = await compressImage(file)
+    images.value.push(new MessageImage({ imageUrl: url, file: compressed, originalFile }))
+  } catch (err) {
+    console.error('图片压缩失败:', err)
+  }
 }
 
 const handleFileChange = async (e) => {
@@ -77,8 +81,8 @@ const handleFileChange = async (e) => {
 }
 
 const handlePaste = async (e) => {
-  const files = e.clipboardData.files
-  if (files.length === 0) return
+  const files = e.clipboardData?.files
+  if (!files || files.length === 0) return
   for (const file of files) {
     if (file.type.startsWith('image/')) {
       e.preventDefault()

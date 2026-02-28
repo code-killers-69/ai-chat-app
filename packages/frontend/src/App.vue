@@ -62,10 +62,14 @@ const handleNewChat = () => {
 
 // 会话需要从服务器初始化加载（缓存未命中）
 const handleConversationInit = async (convId) => {
-  const result = await chatAreaRef.value?.initMessages(convId)
-  // 加载完成后更新 Sidebar 缓存
-  if (result) {
-    sidebarRef.value?.updateMessagesCache(convId, result)
+  try {
+    const result = await chatAreaRef.value?.initMessages(convId)
+    // 加载完成后更新 Sidebar 缓存
+    if (result) {
+      sidebarRef.value?.updateMessagesCache(convId, result)
+    }
+  } catch (e) {
+    console.error('初始化会话失败:', e)
   }
 }
 

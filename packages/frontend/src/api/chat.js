@@ -28,6 +28,7 @@ class AuthAPI {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, nickname })
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
@@ -39,6 +40,7 @@ class AuthAPI {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     
@@ -78,6 +80,7 @@ class ConversationAPI {
     const res = await fetch(`${API_BASE}/conversations`, {
       headers: this.auth.getHeaders()
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
@@ -87,6 +90,7 @@ class ConversationAPI {
     const res = await fetch(`${API_BASE}/conversations/${id}`, {
       headers: this.auth.getHeaders()
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
@@ -96,6 +100,7 @@ class ConversationAPI {
     const res = await fetch(`${API_BASE}/conversations/${id}/info`, {
       headers: this.auth.getHeaders()
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
@@ -107,6 +112,7 @@ class ConversationAPI {
       headers: this.auth.getHeaders(),
       body: JSON.stringify({ title })
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
@@ -117,6 +123,7 @@ class ConversationAPI {
       method: 'DELETE',
       headers: this.auth.getHeaders()
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
   }
@@ -127,6 +134,7 @@ class ConversationAPI {
       headers: this.auth.getHeaders(),
       body: JSON.stringify({ title })
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
   }
@@ -148,6 +156,7 @@ class ConversationAPI {
     const res = await fetch(`${API_BASE}/conversations/${id}/messages${qs ? '?' + qs : ''}`, {
       headers: this.auth.getHeaders()
     });
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
@@ -170,6 +179,7 @@ class ChatAPI {
    */
   async getModels() {
     const res = await fetch(`${API_BASE}/chat/models`);
+    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.data;
