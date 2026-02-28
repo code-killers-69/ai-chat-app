@@ -10,16 +10,16 @@ export class MessageImage {
    * @param {string} [options.imageUrl] - 图片URL（前端本地 blob URL）
    * @param {string} [options.storageType] - 存储类型：local | cdn | cos
    * @param {File} [options.file] - 主图 File 对象（用于 multipart 上传，webp）
-   * @param {File} [options.fallbackFile] - 兜底 File 对象（jpeg）
+   * @param {File|Blob} [options.originalFile] - 原始图片文件（传给 Worker 压缩 jpeg 兜底图）
    */
-  constructor({ id = '', url = '', fallbackUrl = '', imageUrl = '', storageType = 'local', file = null, fallbackFile = null } = {}) {
+  constructor({ id = '', url = '', fallbackUrl = '', imageUrl = '', storageType = 'local', file = null, originalFile = null } = {}) {
     this.id = id;
     this.url = url;
     this.fallbackUrl = fallbackUrl;
     this.imageUrl = imageUrl;
     this.storageType = storageType;
     this.file = file;
-    this.fallbackFile = fallbackFile;
+    this.originalFile = originalFile;
   }
 
   /**

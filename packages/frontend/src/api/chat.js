@@ -1,3 +1,5 @@
+import FallbackUploadWorker from '@/workers/fallback-upload.worker.js?worker';
+
 const API_BASE = '/api';
 
 /**
@@ -187,10 +189,10 @@ class ChatAPI {
    * - AI 回复完成后，异步上传兜底图（不阻塞 AI 响应）
    */
   async streamMessage({ message, images = [], onChunk, onComplete, onError, onConversationCreated }) {
-    // 收集需要异步上传的兜底图
-    const fallbackEntries = images
-      .filter(img => img.fallbackFile)
-      .map(img => img.fallbackFile);
+    // 收集原始图片文件（供 Worker 压缩 jpeg 兜底图）
+    const originalFiles = images
+      .filter(img => img.originalFile)
+      .map(img => img.originalFile);
 
     try {
       let response;
@@ -256,9 +258,9 @@ class ChatAPI {
                 onChunk?.(data.content);
               } else if (data.type === 'done') {
                 onComplete?.(data.content);
-                // 异步上传兜底图，不阻塞
-                if (data.imageIds && data.imageIds.length > 0 && fallbackEntries.length > 0) {
-                  this._uploadFallbacks(data.imageIds, fallbackEntries);
+                // Worker 后台压缩 jpeg + 上传兜底图，不阻塞
+                if (data.imageIds && data.imageIds.length > 0 && originalFiles.length > 0) {
+                  this._uploadFallbacks(data.imageIds, originalFiles);
                 }
               } else if (data.type === 'error') {
                 onError?.(new Error(data.message));
@@ -276,25 +278,29 @@ class ChatAPI {
   }
 
   /**
-   * 异步上传兜底图（后台静默执行，不影响用户体验）
+   * 通过 Web Worker 后台压缩 jpeg 兜底图 + 上传（完全不占用主线程）
    * @param {string[]} imageIds - 后端返回的图片 ID 列表
-   * @param {File[]} fallbackFiles - 对应的 jpeg 兜底图文件
+   * @param {(File|Blob)[]} originalFiles - 原始图片文件，Worker 内压缩成 jpeg
    */
-  async _uploadFallbacks(imageIds, fallbackFiles) {
+  _uploadFallbacks(imageIds, originalFiles) {
     try {
-      const formData = new FormData();
-      formData.append('imageIds', JSON.stringify(imageIds));
-      for (const file of fallbackFiles) {
-        formData.append('fallbacks', file);
-      }
-      const res = await fetch(`${API_BASE}/chat/upload-fallbacks`, {
-        method: 'POST',
-        headers: this.auth.getHeaders(false),
-        body: formData,
+      const worker = new FallbackUploadWorker();
+      worker.postMessage({
+        imageIds,
+        originalFiles,
+        token: this.auth.token,
+        apiBase: API_BASE,
       });
-      if (!res.ok) {
-        console.warn('Upload fallbacks failed:', res.status);
-      }
+      worker.addEventListener('message', (e) => {
+        if (!e.data.success) {
+          console.warn('Worker upload fallbacks failed:', e.data.error);
+        }
+        worker.terminate();
+      });
+      worker.addEventListener('error', (e) => {
+        console.warn('Worker error:', e.message);
+        worker.terminate();
+      });
     } catch (error) {
       console.warn('Upload fallbacks error:', error);
     }

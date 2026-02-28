@@ -63,8 +63,8 @@ const onPreviewImageLoaded = () => {
 }
 
 const addCompressedImage = async (file) => {
-  const { file: compressed, url, fallbackFile } = await compressImage(file)
-  images.value.push(new MessageImage({ imageUrl: url, file: compressed, fallbackFile }))
+  const { file: compressed, url, originalFile } = await compressImage(file)
+  images.value.push(new MessageImage({ imageUrl: url, file: compressed, originalFile }))
 }
 
 const handleFileChange = async (e) => {
