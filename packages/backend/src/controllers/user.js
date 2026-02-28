@@ -45,6 +45,24 @@ export async function login(req, res) {
 }
 
 /**
+ * 刷新 Token
+ */
+export async function refreshToken(req, res) {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(400).json({ success: false, error: 'refreshToken 不能为空' });
+  }
+
+  try {
+    const result = await userService.refreshToken(refreshToken);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(401).json({ success: false, error: 'refreshToken 无效或已过期' });
+  }
+}
+
+/**
  * 获取当前用户信息
  */
 export async function getMe(req, res) {

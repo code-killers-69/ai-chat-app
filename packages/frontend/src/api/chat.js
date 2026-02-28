@@ -1,142 +1,38 @@
+import { http } from './http.js';
 import FallbackUploadWorker from '@/workers/fallback-upload.worker.js?worker';
-
-const API_BASE = '/api';
-
-/**
- * 用户认证 API
- */
-class AuthAPI {
-  constructor() {
-    this.token = localStorage.getItem('chat_token');
-    this.user = JSON.parse(localStorage.getItem('chat_user') || 'null');
-  }
-
-  getHeaders(includeContentType = true) {
-    const headers = {};
-    if (includeContentType) {
-      headers['Content-Type'] = 'application/json';
-    }
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
-    return headers;
-  }
-
-  async register(username, password, nickname) {
-    const res = await fetch(`${API_BASE}/user/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, nickname })
-    });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
-  }
-
-  async login(username, password) {
-    const res = await fetch(`${API_BASE}/user/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    
-    this.token = data.data.token;
-    this.user = data.data.user;
-    localStorage.setItem('chat_token', this.token);
-    localStorage.setItem('chat_user', JSON.stringify(this.user));
-    
-    return data.data;
-  }
-
-  logout() {
-    this.token = null;
-    this.user = null;
-    localStorage.removeItem('chat_token');
-    localStorage.removeItem('chat_user');
-  }
-
-  isLoggedIn() {
-    return !!this.token;
-  }
-
-  getUser() {
-    return this.user;
-  }
-}
 
 /**
  * 会话 API
  */
 class ConversationAPI {
-  constructor(authAPI) {
-    this.auth = authAPI;
-  }
-
   async getConversations() {
-    const res = await fetch(`${API_BASE}/conversations`, {
-      headers: this.auth.getHeaders()
-    });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
+    return http.request('/conversations');
   }
 
   async getConversation(id) {
-    const res = await fetch(`${API_BASE}/conversations/${id}`, {
-      headers: this.auth.getHeaders()
-    });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
+    return http.request(`/conversations/${id}`);
   }
 
   async getConversationInfo(id) {
-    const res = await fetch(`${API_BASE}/conversations/${id}/info`, {
-      headers: this.auth.getHeaders()
-    });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
+    return http.request(`/conversations/${id}/info`);
   }
 
   async createConversation(title) {
-    const res = await fetch(`${API_BASE}/conversations`, {
+    return http.request('/conversations', {
       method: 'POST',
-      headers: this.auth.getHeaders(),
-      body: JSON.stringify({ title })
+      body: { title },
     });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
   }
 
   async deleteConversation(id) {
-    const res = await fetch(`${API_BASE}/conversations/${id}`, {
-      method: 'DELETE',
-      headers: this.auth.getHeaders()
-    });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
+    return http.request(`/conversations/${id}`, { method: 'DELETE' });
   }
 
   async updateTitle(id, title) {
-    const res = await fetch(`${API_BASE}/conversations/${id}`, {
+    return http.request(`/conversations/${id}`, {
       method: 'PUT',
-      headers: this.auth.getHeaders(),
-      body: JSON.stringify({ title })
+      body: { title },
     });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
   }
 
   /**
@@ -153,13 +49,7 @@ class ConversationAPI {
     if (options.before) params.set('before', options.before);
     if (options.after) params.set('after', options.after);
     const qs = params.toString();
-    const res = await fetch(`${API_BASE}/conversations/${id}/messages${qs ? '?' + qs : ''}`, {
-      headers: this.auth.getHeaders()
-    });
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
+    return http.request(`/conversations/${id}/messages${qs ? '?' + qs : ''}`);
   }
 }
 
@@ -168,21 +58,17 @@ class ConversationAPI {
  */
 class ChatAPI {
   constructor() {
-    this.auth = new AuthAPI();
-    this.conversations = new ConversationAPI(this.auth);
+    this.auth = http; // 统一使用 http 实例管理 token
+    this.conversations = new ConversationAPI();
     this.conversationId = null;
-    this.selectedModel = null; // 当前选中的模型 ID
+    this.selectedModel = null;
   }
 
   /**
    * 获取可用模型列表
    */
   async getModels() {
-    const res = await fetch(`${API_BASE}/chat/models`);
-    if (!res.ok) throw new Error(`请求失败 (${res.status})`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    return data.data;
+    return http.request('/chat/models', { auth: false });
   }
 
   /**
@@ -194,21 +80,16 @@ class ChatAPI {
 
   /**
    * 流式发送消息
-   * - 有图片 → multipart/form-data（只传主图 webp，不传兜底图）
-   * - 无图片 → JSON（兼容老后端）
-   * - AI 回复完成后，异步上传兜底图（不阻塞 AI 响应）
    */
   async streamMessage({ message, images = [], onChunk, onComplete, onError, onConversationCreated }) {
-    // 收集原始图片文件（供 Worker 压缩 jpeg 兜底图）
     const originalFiles = images
       .filter(img => img.originalFile)
       .map(img => img.originalFile);
 
     try {
-      let response;
+      let streamOptions;
 
       if (images.length > 0) {
-        // 有图片：multipart/form-data，只传主图
         const formData = new FormData();
         formData.append('message', message || '');
         if (this.conversationId) {
@@ -220,30 +101,16 @@ class ChatAPI {
         for (const img of images) {
           formData.append('images', img.file);
         }
-        response = await fetch(`${API_BASE}/chat/stream`, {
-          method: 'POST',
-          headers: this.auth.getHeaders(false),
-          body: formData,
-        });
+        streamOptions = { formData };
       } else {
-        // 无图片：JSON
-        const body = {
-          message,
-          conversationId: this.conversationId,
-        };
+        const body = { message, conversationId: this.conversationId };
         if (this.selectedModel) {
           body.model = this.selectedModel;
         }
-        response = await fetch(`${API_BASE}/chat/stream`, {
-          method: 'POST',
-          headers: this.auth.getHeaders(),
-          body: JSON.stringify(body),
-        });
+        streamOptions = { body };
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const response = await http.requestStream('/chat/stream', streamOptions);
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -268,7 +135,6 @@ class ChatAPI {
                 onChunk?.(data.content);
               } else if (data.type === 'done') {
                 onComplete?.(data.content);
-                // Worker 后台压缩 jpeg + 上传兜底图，不阻塞
                 if (data.imageIds && data.imageIds.length > 0 && originalFiles.length > 0) {
                   this._uploadFallbacks(data.imageIds, originalFiles);
                 }
@@ -288,9 +154,7 @@ class ChatAPI {
   }
 
   /**
-   * 通过 Web Worker 后台压缩 jpeg 兜底图 + 上传（完全不占用主线程）
-   * @param {string[]} imageIds - 后端返回的图片 ID 列表
-   * @param {(File|Blob)[]} originalFiles - 原始图片文件，Worker 内压缩成 jpeg
+   * 通过 Web Worker 后台压缩 jpeg 兜底图 + 上传
    */
   _uploadFallbacks(imageIds, originalFiles) {
     try {
@@ -298,8 +162,8 @@ class ChatAPI {
       worker.postMessage({
         imageIds,
         originalFiles,
-        token: this.auth.token,
-        apiBase: API_BASE,
+        token: http.token,
+        apiBase: '/api',
       });
       worker.addEventListener('message', (e) => {
         if (!e.data.success) {
@@ -322,10 +186,7 @@ class ChatAPI {
   async clearHistory() {
     if (this.conversationId) {
       try {
-        await fetch(`${API_BASE}/chat/history/${this.conversationId}`, {
-          method: 'DELETE',
-          headers: this.auth.getHeaders(),
-        });
+        await http.request(`/chat/history/${this.conversationId}`, { method: 'DELETE' });
       } catch (error) {
         console.error('Clear history error:', error);
       }
