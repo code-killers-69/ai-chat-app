@@ -5,6 +5,7 @@ import path from 'path';
 import { chatRouter } from './routes/chat.js';
 import { userRouter } from './routes/user.js';
 import { conversationRouter } from './routes/conversation.js';
+import { uploadRouter } from './routes/upload.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { initDatabase } from './config/database.js';
 
@@ -24,6 +25,7 @@ app.use('/uploads', express.static(path.resolve(uploadsPath)));
 app.use('/api/chat', chatRouter);
 app.use('/api/user', userRouter);
 app.use('/api/conversations', conversationRouter);
+app.use('/api/upload', uploadRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
