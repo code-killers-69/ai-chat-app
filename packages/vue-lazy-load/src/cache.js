@@ -16,13 +16,19 @@ const DB_VERSION = 1
 
 let maxMemory = DEFAULT_MAX_MEMORY
 let maxIdb = DEFAULT_MAX_IDB
+let enableIdb = false               // L2 IndexedDB 默认关闭，需手动开启
 
 /**
- * 可选：设置缓存容量上限
+ * 设置缓存选项
+ * @param {object} opts
+ * @param {number}  [opts.maxMemory]  - L1 内存最大条目数
+ * @param {number}  [opts.maxIdb]     - L2 IndexedDB 最大条目数
+ * @param {boolean} [opts.persistent] - 是否开启 L2 IndexedDB 持久化缓存（默认 false）
  */
 export function setCacheOptions(opts = {}) {
   if (opts.maxMemory) maxMemory = opts.maxMemory
   if (opts.maxIdb) maxIdb = opts.maxIdb
+  if (opts.persistent !== undefined) enableIdb = !!opts.persistent
 }
 
 // ─── L1: 内存 LRU Cache ─────────────────────────────────
@@ -212,15 +218,17 @@ export async function getCachedImage(url) {
 }
 
 async function resolveImage(url) {
-  // L2 命中 → 提升到 L1
-  const idbBlob = await idbGet(url)
-  if (idbBlob) {
-    const blobUrl = URL.createObjectURL(idbBlob)
-    l1.set(url, blobUrl)
-    return blobUrl
+  // L2 命中 → 提升到 L1（仅在 L2 开启时查询）
+  if (enableIdb) {
+    const idbBlob = await idbGet(url)
+    if (idbBlob) {
+      const blobUrl = URL.createObjectURL(idbBlob)
+      l1.set(url, blobUrl)
+      return blobUrl
+    }
   }
 
-  // 网络 fetch → 写入 L1 + L2
+  // 网络 fetch → 写入 L1（+ L2 if enabled）
   return fetchAndCache(url)
 }
 
@@ -247,7 +255,9 @@ export function hasCachedImage(url) {
  */
 export function clearImageCache() {
   l1.clear()
-  idbClear()
+  if (enableIdb) {
+    idbClear()
+  }
 }
 
 /**
@@ -269,8 +279,10 @@ async function fetchAndCache(url) {
 
     // 写入 L1
     l1.set(url, blobUrl)
-    // 异步写入 L2（不阻塞返回）
-    idbPut(url, blob)
+    // 异步写入 L2（仅在 L2 开启时，不阻塞返回）
+    if (enableIdb) {
+      idbPut(url, blob)
+    }
 
     return blobUrl
   } catch {
