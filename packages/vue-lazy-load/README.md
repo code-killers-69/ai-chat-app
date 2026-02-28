@@ -56,16 +56,13 @@ app.mount('#app')
 
 主图加载失败时自动切换到 `fallbackUrl`。
 
-### 缓存 API
+### 缓存管理 API
 
 ```js
-import {
-  getCachedImage,      // 异步获取缓存（L1 → L2 → fetch，未缓存则网络请求）
-  getCachedImageSync,  // 同步获取 L1 内存缓存（未缓存返回 null）
-  hasCachedImage,      // 检查是否在 L1 内存中已缓存
-  clearImageCache,     // 清除所有缓存（L1 + L2），释放内存
-  getCacheStats,       // 获取 L1 缓存命中率统计
-} from '@code-killer/vue-lazy-load'
+import { clearImageCache, getCacheStats } from '@code-killer/vue-lazy-load'
+
+clearImageCache()        // 清除所有缓存（L1 + L2），释放内存（适用于登出、调试等场景）
+getCacheStats()          // 返回 { hits, misses, hitRate, size }，用于判断缓存配置是否合理
 ```
 
 ## 缓存架构
@@ -118,6 +115,7 @@ img 挂载
 - 新增 `persistent` 配置项，控制是否开启 L2 持久化缓存
 - 新增 `maxMemory`、`maxIdb` 配置项，支持自定义缓存容量上限
 - 新增 `getCacheStats()` API，返回 L1 缓存命中率统计
+- 新增 `clearImageCache()` API，支持手动清除全部缓存
 - L1 淘汰时自动 `URL.revokeObjectURL` 释放 Blob 内存
 - L2 超出上限时按访问时间自动淘汰最久未使用的记录
 

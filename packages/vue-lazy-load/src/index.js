@@ -12,7 +12,10 @@
  */
 
 import { lazyDirective, setGlobalOptions } from './directive.js'
-import { setCacheOptions } from './cache.js'
+import { setCacheOptions, clearImageCache, getCacheStats } from './cache.js'
+
+// 暴露缓存管理 API（不暴露内部查询方法，避免用户绕过指令直接操作缓存）
+export { clearImageCache, getCacheStats }
 
 /**
  * Vue 插件安装函数
