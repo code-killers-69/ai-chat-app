@@ -13,7 +13,7 @@
 
 import { lazyDirective, setGlobalOptions } from './directive.js'
 
-export { getCachedImage, getCachedImageSync, hasCachedImage, clearImageCache } from './cache.js'
+export { getCachedImage, getCachedImageSync, hasCachedImage, clearImageCache, getCacheStats, setCacheOptions } from './cache.js'
 export { lazyDirective, setGlobalOptions }
 
 /**
