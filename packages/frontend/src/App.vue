@@ -16,6 +16,7 @@
       @show-login="showAuthModal = true"
       @logout="handleLogout"
       @new-conversation-created="handleNewConversationCreated"
+      @cache-updated="handleCacheUpdated"
     />
   </div>
   
@@ -76,6 +77,11 @@ const handleConversationCached = ({ messages, pagination }) => {
 // 新会话创建后刷新侧边栏
 const handleNewConversationCreated = () => {
   sidebarRef.value?.refreshAndSetCurrent()
+}
+
+// 历史消息加载后同步缓存
+const handleCacheUpdated = ({ convId, messages, pagination }) => {
+  sidebarRef.value?.updateMessagesCache(convId, { messages, pagination })
 }
 
 // 会话删除后清空聊天区域（当删除的是最后一个会话时）

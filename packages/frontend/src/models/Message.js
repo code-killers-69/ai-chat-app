@@ -45,13 +45,15 @@ export class Message {
    * @param {MessageImage[]} [options.images] - 附带图片列表
    * @param {boolean} [options.isStreaming] - 是否正在流式输出中
    */
-  constructor({ id, content, time, role, images = [], isStreaming = false }) {
+  constructor({ id, content, time, role, images = [], isStreaming = false, createdAt = '' }) {
     this.id = id;
     this.content = content;
     this.time = time;
     this.role = role;
     this.images = images.map(img => img instanceof MessageImage ? img : new MessageImage(img));
     this.isStreaming = isStreaming;
+    /** 原始 ISO 时间戳，用于缓存回写时保留完整时间信息 */
+    this.createdAt = createdAt;
   }
 
   /**
@@ -72,6 +74,7 @@ export class Message {
       role: serverMsg.role === 'user' ? 'me' : 'you',
       images: (serverMsg.images || []).map(img => new MessageImage(img)),
       isStreaming: false,
+      createdAt: serverMsg.created_at,
     });
   }
 
@@ -89,6 +92,7 @@ export class Message {
       time: Message.getNowTime(),
       role: 'me',
       images,
+      createdAt: new Date().toISOString(),
     });
   }
 
@@ -103,6 +107,7 @@ export class Message {
       time: Message.getNowTime(),
       role: 'you',
       isStreaming: true,
+      createdAt: new Date().toISOString(),
     });
   }
 

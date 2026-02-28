@@ -3,7 +3,7 @@
         <HeaderBar :is-logged-in="isLoggedIn" :user="user" @show-login="$emit('showLogin')"
             @logout="$emit('logout')" />
 
-        <!-- 消息列表（虚拟滚动） -->
+        <!-- 消息列表 -->
         <div class="scrollArea" ref="scrollArea" @scroll="onScroll">
             <!-- 顶部加载更多 -->
             <div v-if="isLoadingOlder" class="loading-indicator">加载中...</div>
@@ -11,14 +11,10 @@
                 向上滚动加载更多
             </div>
 
-            <!-- 虚拟列表容器 -->
-            <div class="virtual-list-container" :style="{ height: totalHeight + 'px', position: 'relative' }">
-                <div v-for="item in visibleItems" :key="item.data.id" :data-virtual-id="item.data.id"
-                    class="virtual-item baseAlign"
-                    :class="{ yourAlign: item.data.role === 'you', myAlign: item.data.role === 'me' }"
-                    :style="{ position: 'absolute', top: item.offset + 'px', width: '100%' }">
-                    <MessageBubble :message="item.data" :content="item.data.content" :is-streaming="item.data.isStreaming" @image-loaded="onMessageImageLoaded" />
-                </div>
+            <div v-for="msg in messages" :key="msg.id"
+                class="message-item baseAlign"
+                :class="{ yourAlign: msg.role === 'you', myAlign: msg.role === 'me' }">
+                <MessageBubble :message="msg" :content="msg.content" :is-streaming="msg.isStreaming" @image-loaded="onMessageImageLoaded" />
             </div>
         </div>
 
@@ -33,14 +29,13 @@ import MessageBubble from './MessageBubble.vue'
 import MessageInput from './MessageInput.vue'
 import { chatAPI } from '../api/chat.js'
 import { Message } from '../models/Message.js'
-import { useVirtualList } from '../composables/useVirtualList.js'
 
 defineProps({
     isLoggedIn: Boolean,
     user: Object,
 })
 
-const emit = defineEmits(['showLogin', 'logout', 'newConversationCreated'])
+const emit = defineEmits(['showLogin', 'logout', 'newConversationCreated', 'cacheUpdated'])
 
 // ========== 状态 ==========
 const messages = shallowRef([])
@@ -52,27 +47,38 @@ const hasMoreBefore = ref(false)
 const hasMoreAfter = ref(false)
 const isLoadingOlder = ref(false)
 const currentConversationId = ref(null)
+// 初始化期间禁止触发加载历史消息（scrollTop 为 0 会误触发）
+let isInitializing = false
 
-// ========== 虚拟列表 ==========
-const {
-    visibleItems,
-    totalHeight,
-    onScroll: virtualOnScroll,
-    scrollToBottom,
-    isNearBottom,
-    anchorAfterPrepend,
-    observeVisibleItems,
-    clearHeightCache,
-    forceUpdate,
-} = useVirtualList({
-    items: messages,
-    scrollContainer: scrollArea,
-})
+// ========== 滚动工具 ==========
+function isNearBottom(threshold = 150) {
+    if (!scrollArea.value) return true
+    const { scrollTop, scrollHeight, clientHeight } = scrollArea.value
+    return scrollHeight - scrollTop - clientHeight < threshold
+}
 
-// 滚动事件：虚拟列表 + 加载更多
+function scrollToBottom(behavior = 'smooth') {
+    const doScroll = () => {
+        if (!scrollArea.value) return
+        scrollArea.value.scrollTo({
+            top: scrollArea.value.scrollHeight,
+            left: 0,
+            behavior,
+        })
+    }
+
+    nextTick(doScroll)
+
+    // instant 模式（初始加载/切换会话）：延迟兜底，等图片等异步内容撑开高度
+    if (behavior === 'instant') {
+        nextTick(() => nextTick(doScroll))
+        setTimeout(doScroll, 100)
+    }
+}
+
+// 滚动事件：加载更多
 function onScroll() {
-    virtualOnScroll()
-    if (scrollArea.value && scrollArea.value.scrollTop < 50 && hasMoreBefore.value && !isLoadingOlder.value) {
+    if (!isInitializing && scrollArea.value && scrollArea.value.scrollTop < 50 && hasMoreBefore.value && !isLoadingOlder.value) {
         loadOlderMessages()
     }
 }
@@ -81,6 +87,10 @@ function onScroll() {
 async function loadOlderMessages() {
     if (!currentConversationId.value || messages.value.length === 0) return
     isLoadingOlder.value = true
+
+    // 记住当前第一个可见消息，加载完后恢复滚动位置
+    const firstMsgEl = scrollArea.value?.querySelector('.message-item')
+    const prevScrollHeight = scrollArea.value?.scrollHeight || 0
 
     try {
         const firstMsg = messages.value[0]
@@ -91,15 +101,31 @@ async function loadOlderMessages() {
 
         if (result.messages && result.messages.length > 0) {
             const olderMessages = result.messages.map(m => Message.fromServer(m))
-            const prependCount = olderMessages.length
             messages.value = [...olderMessages, ...messages.value]
             hasMoreBefore.value = result.pagination.hasMoreBefore
 
-            // 统一由虚拟列表锚定处理滚动位置
-            anchorAfterPrepend(prependCount)
-
+            // 恢复滚动位置：新内容插入顶部后，scrollHeight 增加了，补偿差值
             await nextTick()
-            observeVisibleItems()
+            if (scrollArea.value) {
+                const newScrollHeight = scrollArea.value.scrollHeight
+                scrollArea.value.scrollTop += (newScrollHeight - prevScrollHeight)
+            }
+
+            // 同步更新 Sidebar 缓存，切换回来时不再重复加载
+            emit('cacheUpdated', {
+                convId: currentConversationId.value,
+                messages: messages.value.map(m => ({
+                    id: m.id,
+                    content: m.content,
+                    created_at: m.createdAt,
+                    role: m.role === 'me' ? 'user' : 'assistant',
+                    images: m.images,
+                })),
+                pagination: {
+                    hasMoreBefore: hasMoreBefore.value,
+                    hasMoreAfter: hasMoreAfter.value,
+                },
+            })
         } else {
             hasMoreBefore.value = false
         }
@@ -112,7 +138,6 @@ async function loadOlderMessages() {
 
 // ========== 图片加载回调 ==========
 const onMessageImageLoaded = () => {
-    forceUpdate()
     if (isNearBottom()) {
         scrollToBottom()
     }
@@ -143,11 +168,10 @@ const handleSend = async ({ content, images }) => {
             onChunk: (chunk) => {
                 aiMsg.appendContent(chunk)
                 triggerRef(messages)
-                // 使用 rAF 节流：每帧最多更新一次，避免高频触发抖动
+                // 使用 rAF 节流：每帧最多更新一次
                 if (!chunkRAF) {
                     chunkRAF = requestAnimationFrame(() => {
                         chunkRAF = null
-                        forceUpdate()
                         if (isNearBottom()) scrollToBottom()
                     })
                 }
@@ -160,7 +184,6 @@ const handleSend = async ({ content, images }) => {
                 }
                 aiMsg.finishStreaming()
                 triggerRef(messages)
-                forceUpdate()
                 isLoading.value = false
                 if (isNearBottom()) scrollToBottom()
                 if (isNewConversation) {
@@ -196,7 +219,7 @@ const handleSend = async ({ content, images }) => {
  */
 const initMessages = async (convId) => {
     currentConversationId.value = convId
-    clearHeightCache()
+    isInitializing = true
 
     try {
         const result = await chatAPI.conversations.getMessagesPaginated(convId, { limit: 20 })
@@ -205,13 +228,16 @@ const initMessages = async (convId) => {
         hasMoreAfter.value = result.pagination.hasMoreAfter
 
         await nextTick()
-        observeVisibleItems()
         scrollToBottom('instant')
+
+        // scrollToBottom 的兜底 setTimeout 是 100ms，等它完成后再解除保护
+        setTimeout(() => { isInitializing = false }, 150)
 
         return result
     } catch (e) {
         console.error('加载消息失败:', e)
         messages.value = []
+        isInitializing = false
         return null
     }
 }
@@ -221,20 +247,19 @@ const initMessages = async (convId) => {
  */
 const loadFromCache = (msgList, pagination = {}) => {
     currentConversationId.value = chatAPI.conversationId
-    clearHeightCache()
+    isInitializing = true
     messages.value = msgList.map(m => Message.fromServer(m))
     hasMoreBefore.value = pagination.hasMoreBefore || false
     hasMoreAfter.value = pagination.hasMoreAfter || false
 
     nextTick(() => {
-        observeVisibleItems()
         scrollToBottom('instant')
+        setTimeout(() => { isInitializing = false }, 150)
     })
 }
 
 const clearMessages = () => {
     messages.value = []
-    clearHeightCache()
     hasMoreBefore.value = false
     hasMoreAfter.value = false
     currentConversationId.value = null
@@ -265,20 +290,6 @@ defineExpose({
     overflow-y: auto;
     scrollbar-width: none;
     position: relative;
-    /* 告知浏览器此区域独立布局，跳过外部重排 */
-    contain: strict;
-    /* 提示 GPU 预备合成层，滚动更流畅 */
-    will-change: scroll-position;
-}
-
-.virtual-list-container {
-    width: 100%;
-    contain: layout style;
-}
-
-.virtual-item {
-    box-sizing: border-box;
-    contain: layout style paint;
 }
 
 .loading-indicator {

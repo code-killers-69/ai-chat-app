@@ -9,7 +9,7 @@
                     <div class="spinner"></div>
                 </div>
                 <img v-lazy="lazyBinding"
-                    class="imageBlock" v-show="isLoaded"
+                    class="imageBlock" :class="{ 'image-hidden': !isLoaded }"
                     :key="`${imageUrl}-imageBlock`"
                     @load="onImageLoaded" />
             </TransitionGroup>
@@ -79,8 +79,8 @@ const showDeleteBtn = ref(false)
     overflow: hidden;
     position: relative;
     background-color: #f0f0f0;
-    /* 固定尺寸容器，独立渲染 */
-    contain: strict;
+    /* 固定尺寸容器，独立布局和绘制 */
+    contain: layout paint;
 }
 
 .waitBlock {
@@ -100,8 +100,16 @@ const showDeleteBtn = ref(false)
     object-fit: cover;
     border: none;
     border-radius: 5px;
-    /* 避免图片解码阻塞主线程 */
-    content-visibility: auto;
+    /* 异步解码，不阻塞主线程 */
+    decoding: async;
+}
+
+/* 图片未加载时：保持布局尺寸（IntersectionObserver 需要），但视觉不可见 */
+.image-hidden {
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 @keyframes spin {
