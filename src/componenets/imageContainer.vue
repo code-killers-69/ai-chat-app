@@ -43,6 +43,8 @@ const onLoaded = () => {
 }
 
 .loadingAnimation {
+    height: var(--size);
+    width: var(--size);
     position: relative;
     margin: 0 2px;
     border-radius: 5px;
@@ -56,7 +58,10 @@ const onLoaded = () => {
 }
 
 .noLoading {
-    max-width: var(--size);
+    width: var(--size);
+    height: var(--size);
+    overflow: hidden;
+    object-fit: cover;
     margin: 5px 0;
     border-radius: 10px;
 }

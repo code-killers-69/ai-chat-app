@@ -1,35 +1,34 @@
 <template>
   <div class="container">
-    <Conversations ref="conversationsRef"></Conversations>
-    <MainTab class=" main-tab">
-    </MainTab>
+    <convoTab class="convo-tab"></convoTab>
+    <chatTab>
+    </chatTab>
   </div>
 </template>
 
 <script setup>
-import MainTab from './tabs/mainTab.vue';
-import Conversations from './tabs/conversations.vue';
-import { onMounted, ref } from 'vue';
-import { Conversation, conversations } from './states/conversation';
+import chatTab from './tabs/chatTab.vue';
+import convoTab from './tabs/convoTab.vue';
+import { onMounted } from 'vue';
+import { useConvoStore } from './states/conversation';
 
-const conversationsRef = ref(null);
+const convoStore = useConvoStore()
+const { convoInit } = convoStore
 
-onMounted(async () => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    const response = await fetch('http://scj.dolmo.top:3001/api/conversations', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await response.json();
-    conversations.value = data.data.map((conversion) => new Conversation(conversion['id'], conversion['title'], conversion['created_at'], conversion['updated_at']));
-    conversationsRef.value.choseConvo(conversations.value[0])
-  }
-})
+// 初始化会话列表
+onMounted(convoInit)
 
 </script>
 
 <style scoped>
 .container {
+  position: relative;
   display: flex;
+}
+
+.convo-tab {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 </style>

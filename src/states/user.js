@@ -1,12 +1,18 @@
 import { ref } from 'vue';
+import { defineStore } from 'pinia';
 
-const userInfoRef = ref({});
-let token = '';
-const setToken = (newToken) => {
-  token = newToken;
-};
+export const useUserStore = defineStore('user', () => {
+  const userInfoRef = ref({});
+  let token = ref('');
 
-const conversationIdRef = ref();
-const newConvoId = ref([]);
+  function setToken(newToken) {
+    token.value = newToken;
+  }
 
-export { conversationIdRef, token, userInfoRef, setToken, newConvoId };
+  function $userReset() {
+    localStorage.clear();
+    userInfoRef.value = {};
+    token.value = '';
+  }
+  return { token, userInfoRef, setToken, $userReset };
+});
