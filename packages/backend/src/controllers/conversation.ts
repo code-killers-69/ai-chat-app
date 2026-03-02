@@ -34,7 +34,7 @@ export async function createConversation(req: AuthRequest, res: Response): Promi
 export async function getConversationInfo(req: AuthRequest, res: Response): Promise<void> {
   try {
     const conversation = await messageService.getConversationInfo(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId
     )
 
@@ -55,7 +55,7 @@ export async function getConversationInfo(req: AuthRequest, res: Response): Prom
 export async function getConversationDetail(req: AuthRequest, res: Response): Promise<void> {
   try {
     const conversation = await messageService.getConversationWithMessages(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId
     )
 
@@ -82,7 +82,7 @@ export async function updateConversation(req: AuthRequest, res: Response): Promi
   }
 
   try {
-    await messageService.updateConversationTitle(req.params.id, req.user!.userId, title)
+    await messageService.updateConversationTitle(req.params.id as string, req.user!.userId, title)
     res.json({ success: true })
   } catch (error) {
     res.status(500).json({ success: false, error: '更新会话标题失败' })
@@ -94,7 +94,7 @@ export async function updateConversation(req: AuthRequest, res: Response): Promi
  */
 export async function deleteConversation(req: AuthRequest, res: Response): Promise<void> {
   try {
-    await messageService.deleteConversation(req.params.id, req.user!.userId)
+    await messageService.deleteConversation(req.params.id as string, req.user!.userId)
     res.json({ success: true })
   } catch (error) {
     res.status(500).json({ success: false, error: '删除会话失败' })
@@ -109,7 +109,7 @@ export async function getMessages(req: AuthRequest, res: Response): Promise<void
     const { limit, before, after } = req.query as { limit?: string; before?: string; after?: string }
 
     const result = await messageService.getMessagesPaginated(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId,
       {
         limit: limit ? parseInt(limit, 10) : 20,

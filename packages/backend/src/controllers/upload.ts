@@ -163,7 +163,7 @@ export async function completeUpload(req: AuthRequest, res: Response): Promise<v
  * 查询上传进度
  */
 export async function getProgress(req: AuthRequest, res: Response): Promise<void> {
-  const state = uploads.get(req.params.uploadId)
+  const state = uploads.get(req.params.uploadId as string)
 
   if (!state) {
     res.json({

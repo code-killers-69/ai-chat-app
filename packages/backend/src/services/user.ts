@@ -8,8 +8,8 @@ const JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) {
   throw new Error('环境变量 JWT_SECRET 未设置，拒绝启动。请在 .env 中配置一个安全的密钥。')
 }
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '2h'
-const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '2h') as jwt.SignOptions['expiresIn']
+const REFRESH_TOKEN_EXPIRES_IN = (process.env.REFRESH_TOKEN_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn']
 
 export const userService = {
   async register(username: string, password: string, nickname?: string) {
