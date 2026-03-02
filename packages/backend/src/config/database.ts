@@ -1,24 +1,24 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import mysql, { type Pool } from 'mysql2/promise'
+import dotenv from 'dotenv'
 
-dotenv.config();
+dotenv.config()
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
+  port: parseInt(process.env.DB_PORT || '3306', 10),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-};
-const dbName = process.env.DB_NAME || 'chat_app';
+}
+const dbName = process.env.DB_NAME || 'chat_app'
 
-let pool;
+let pool: Pool
 
 // 初始化数据库表
-export async function initDatabase() {
+export async function initDatabase(): Promise<void> {
   // 先创建数据库（不指定 database）
-  const tempConn = await mysql.createConnection(dbConfig);
-  await tempConn.execute(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-  await tempConn.end();
+  const tempConn = await mysql.createConnection(dbConfig)
+  await tempConn.execute(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  await tempConn.end()
 
   // 创建连接池
   pool = mysql.createPool({
@@ -26,11 +26,11 @@ export async function initDatabase() {
     database: dbName,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
-  });
+    queueLimit: 0,
+  })
 
-  const connection = await pool.getConnection();
-  
+  const connection = await pool.getConnection()
+
   try {
     // 用户表
     await connection.execute(`
@@ -43,7 +43,7 @@ export async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
-    `);
+    `)
 
     // 会话表
     await connection.execute(`
@@ -55,7 +55,7 @@ export async function initDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
-    `);
+    `)
 
     // 消息表
     await connection.execute(`
@@ -67,12 +67,12 @@ export async function initDatabase() {
         created_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3),
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
       )
-    `);
+    `)
 
-    // 升级：确保 messages.created_at 有毫秒精度（秒级精度会导致同秒消息排序错乱）
+    // 升级：确保 messages.created_at 有毫秒精度
     await connection.execute(
       `ALTER TABLE messages MODIFY created_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3)`
-    ).catch(() => { /* 已经是 TIMESTAMP(3) 则忽略 */ });
+    ).catch(() => { /* 已经是 TIMESTAMP(3) 则忽略 */ })
 
     // 图片表
     await connection.execute(`
@@ -88,26 +88,26 @@ export async function initDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
       )
-    `);
+    `)
 
     // 升级：为已有 images 表添加 fallback_url 字段
     await connection.execute(
       `ALTER TABLE images ADD COLUMN fallback_url VARCHAR(500) DEFAULT '' AFTER url`
-    ).catch(() => { /* 字段已存在则忽略 */ });
+    ).catch(() => { /* 字段已存在则忽略 */ })
 
-    // 升级：为 messages.content 添加全文索引（支持中文搜索需要 ngram parser）
+    // 升级：为 messages.content 添加全文索引
     await connection.execute(
       `ALTER TABLE messages ADD FULLTEXT INDEX ft_content (content) WITH PARSER ngram`
-    ).catch(() => { /* 索引已存在则忽略 */ });
+    ).catch(() => { /* 索引已存在则忽略 */ })
 
-    console.log('Database tables initialized successfully');
+    console.log('Database tables initialized successfully')
   } finally {
-    connection.release();
+    connection.release()
   }
 }
 
-export function getPool() {
-  return pool;
+export function getPool(): Pool {
+  return pool
 }
 
-export default { getPool };
+export default { getPool }

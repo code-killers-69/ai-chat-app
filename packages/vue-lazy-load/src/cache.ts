@@ -6,6 +6,8 @@
  * 对外 API 保持不变，内部升级为两级缓存架构。
  */
 
+import type { CacheOptions, CacheStats } from './types'
+
 // ─── 配置 ───────────────────────────────────────────────
 
 const DEFAULT_MAX_MEMORY = 150      // L1 内存最大条目数
@@ -20,12 +22,8 @@ let enableIdb = false               // L2 IndexedDB 默认关闭，需手动开�
 
 /**
  * 设置缓存选项
- * @param {object} opts
- * @param {number}  [opts.maxMemory]  - L1 内存最大条目数
- * @param {number}  [opts.maxIdb]     - L2 IndexedDB 最大条目数
- * @param {boolean} [opts.persistent] - 是否开启 L2 IndexedDB 持久化缓存（默认 false）
  */
-export function setCacheOptions(opts = {}) {
+export function setCacheOptions(opts: CacheOptions = {}): void {
   if (opts.maxMemory) maxMemory = opts.maxMemory
   if (opts.maxIdb) maxIdb = opts.maxIdb
   if (opts.persistent !== undefined) enableIdb = !!opts.persistent
@@ -34,37 +32,42 @@ export function setCacheOptions(opts = {}) {
 // ─── L1: 内存 LRU Cache ─────────────────────────────────
 
 class LRUCache {
-  constructor(capacity) {
+  private capacity: number
+  private map: Map<string, string>  // key → blobUrl
+  private _hits: number
+  private _misses: number
+
+  constructor(capacity: number) {
     this.capacity = capacity
-    this.map = new Map()        // key → blobUrl, 按访问顺序排列
+    this.map = new Map()
     this._hits = 0
     this._misses = 0
   }
 
-  get(key) {
+  get(key: string): string | undefined {
     if (!this.map.has(key)) {
       this._misses++
       return undefined
     }
     this._hits++
     // 移到末尾（最近使用）
-    const value = this.map.get(key)
+    const value = this.map.get(key)!
     this.map.delete(key)
     this.map.set(key, value)
     return value
   }
 
-  has(key) {
+  has(key: string): boolean {
     return this.map.has(key)
   }
 
-  set(key, value) {
+  set(key: string, value: string): void {
     if (this.map.has(key)) {
       this.map.delete(key)
     } else if (this.map.size >= this.capacity) {
       // 淘汰最久未使用的（第一个）
-      const oldest = this.map.keys().next().value
-      const oldUrl = this.map.get(oldest)
+      const oldest = this.map.keys().next().value as string
+      const oldUrl = this.map.get(oldest)!
       this.map.delete(oldest)
       // 释放 blob URL 内存
       URL.revokeObjectURL(oldUrl)
@@ -72,19 +75,19 @@ class LRUCache {
     this.map.set(key, value)
   }
 
-  clear() {
+  clear(): void {
     for (const blobUrl of this.map.values()) {
       URL.revokeObjectURL(blobUrl)
     }
     this.map.clear()
   }
 
-  get size() {
+  get size(): number {
     return this.map.size
   }
 
   /** 缓存命中率统计 */
-  get stats() {
+  get stats(): CacheStats {
     const total = this._hits + this._misses
     return {
       hits: this._hits,
@@ -99,11 +102,11 @@ const l1 = new LRUCache(maxMemory)
 
 // ─── L2: IndexedDB 持久化 ───────────────────────────────
 
-let dbPromise = null
+let dbPromise: Promise<IDBDatabase> | null = null
 
-function openDB() {
+function openDB(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise
-  dbPromise = new Promise((resolve, reject) => {
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
     req.onupgradeneeded = () => {
       const db = req.result
@@ -121,10 +124,10 @@ function openDB() {
   return dbPromise
 }
 
-async function idbGet(url) {
+async function idbGet(url: string): Promise<Blob | null> {
   try {
     const db = await openDB()
-    return new Promise((resolve, reject) => {
+    return new Promise<Blob | null>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite')
       const store = tx.objectStore(STORE_NAME)
       const req = store.get(url)
@@ -134,7 +137,7 @@ async function idbGet(url) {
           // 更新访问时间
           record.accessedAt = Date.now()
           store.put(record)
-          resolve(record.blob)
+          resolve(record.blob as Blob)
         } else {
           resolve(null)
         }
@@ -146,7 +149,7 @@ async function idbGet(url) {
   }
 }
 
-async function idbPut(url, blob) {
+async function idbPut(url: string, blob: Blob): Promise<void> {
   try {
     const db = await openDB()
     const tx = db.transaction(STORE_NAME, 'readwrite')
@@ -176,7 +179,7 @@ async function idbPut(url, blob) {
   }
 }
 
-async function idbClear() {
+async function idbClear(): Promise<void> {
   try {
     const db = await openDB()
     const tx = db.transaction(STORE_NAME, 'readwrite')
@@ -188,17 +191,15 @@ async function idbClear() {
 
 // ─── 请求去重 ───────────────────────────────────────────
 
-const pending = new Map()
+const pending = new Map<string, Promise<string>>()
 
 // ─── 对外 API ───────────────────────────────────────────
 
 /**
  * 异步获取图片的缓存 blob URL
  * 查找顺序: L1(内存) → L2(IndexedDB) → 网络 fetch
- * @param {string} url - 原始图片 URL
- * @returns {Promise<string>} blob URL（失败时回退到原始 URL）
  */
-export async function getCachedImage(url) {
+export async function getCachedImage(url: string): Promise<string> {
   if (!url) return ''
 
   // L1 命中
@@ -206,7 +207,7 @@ export async function getCachedImage(url) {
   if (l1Hit) return l1Hit
 
   // 去重：同一 URL 只发一次请求
-  if (pending.has(url)) return pending.get(url)
+  if (pending.has(url)) return pending.get(url)!
 
   const promise = resolveImage(url)
   pending.set(url, promise)
@@ -217,7 +218,7 @@ export async function getCachedImage(url) {
   }
 }
 
-async function resolveImage(url) {
+async function resolveImage(url: string): Promise<string> {
   // L2 命中 → 提升到 L1（仅在 L2 开启时查询）
   if (enableIdb) {
     const idbBlob = await idbGet(url)
@@ -234,26 +235,22 @@ async function resolveImage(url) {
 
 /**
  * 同步获取已缓存的 blob URL（仅查 L1 内存）
- * @param {string} url
- * @returns {string|null}
  */
-export function getCachedImageSync(url) {
+export function getCachedImageSync(url: string): string | null {
   return l1.get(url) || null
 }
 
 /**
  * 同步检查是否在 L1 中已缓存
- * @param {string} url
- * @returns {boolean}
  */
-export function hasCachedImage(url) {
+export function hasCachedImage(url: string): boolean {
   return l1.has(url)
 }
 
 /**
  * 清除所有缓存（L1 + L2）
  */
-export function clearImageCache() {
+export function clearImageCache(): void {
   l1.clear()
   if (enableIdb) {
     idbClear()
@@ -262,15 +259,14 @@ export function clearImageCache() {
 
 /**
  * 获取缓存统计信息
- * @returns {{ hits: number, misses: number, hitRate: string, size: number }}
  */
-export function getCacheStats() {
+export function getCacheStats(): CacheStats {
   return l1.stats
 }
 
 // ─── 内部实现 ───────────────────────────────────────────
 
-async function fetchAndCache(url) {
+async function fetchAndCache(url: string): Promise<string> {
   try {
     const response = await fetch(url)
     if (!response.ok) return url

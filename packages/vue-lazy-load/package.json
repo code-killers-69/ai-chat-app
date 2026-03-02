@@ -3,11 +3,11 @@
   "version": "1.2.0",
   "description": "Vue 3 图片懒加载指令插件，基于 IntersectionObserver + 两级缓存（LRU 内存 + IndexedDB 持久化）",
   "type": "module",
-  "main": "src/index.js",
-  "module": "src/index.js",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
   "exports": {
     ".": {
-      "import": "./src/index.js"
+      "import": "./src/index.ts"
     }
   },
   "files": [

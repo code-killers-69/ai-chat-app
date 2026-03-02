@@ -4,19 +4,19 @@
  * 用法：
  *   <img v-lazy="imageUrl" />
  *   <img v-lazy="{ src: imageUrl, fallback: fallbackUrl }" />
- *
- * 行为：
- *   1. 挂载时检查缓存 → 命中则同步赋 src（零延迟）
- *   2. 缓存未命中 → IntersectionObserver 监听，进入视口时 fetch + 缓存 + 赋 src
- *   3. 支持 fallback：主图加载失败自动切换到兜底图
- *   4. 支持全局默认配置（rootMargin、loading 占位图、error 占位图）
- *   5. 更新时（v-lazy 值变化）重新走懒加载流程
  */
 
-import { getCachedImage, getCachedImageSync } from './cache.js'
+import type { Directive } from 'vue'
+import { getCachedImage, getCachedImageSync } from './cache'
+import type { LazyOptions } from './types'
 
-/** @type {{ rootMargin: string, loading: string, error: string }} */
-let globalOptions = {
+// 扩展 HTMLElement 以存储指令私有数据
+interface LazyHTMLElement extends HTMLImageElement {
+  _lazyObserver: IntersectionObserver | null
+  _lazyErrorHandler: (() => void) | null
+}
+
+let globalOptions: LazyOptions = {
   rootMargin: '200px',
   loading: '',
   error: '',
@@ -25,16 +25,14 @@ let globalOptions = {
 /**
  * 设置全局默认配置
  */
-export function setGlobalOptions(opts) {
+export function setGlobalOptions(opts: Partial<LazyOptions>): void {
   Object.assign(globalOptions, opts)
 }
 
 /**
  * 解析指令绑定值
- * @param {string|object} value
- * @returns {{ src: string, fallback: string }}
  */
-function parseBinding(value) {
+function parseBinding(value: string | { src?: string; fallback?: string }): { src: string; fallback: string } {
   if (typeof value === 'string') {
     return { src: value, fallback: '' }
   }
@@ -44,7 +42,7 @@ function parseBinding(value) {
 /**
  * 加载图片并赋值给 <img>.src
  */
-async function loadImage(el, src, fallback) {
+async function loadImage(el: LazyHTMLElement, src: string, fallback: string): Promise<void> {
   try {
     const blobUrl = await getCachedImage(src)
     el.src = blobUrl
@@ -54,7 +52,7 @@ async function loadImage(el, src, fallback) {
       el._lazyErrorHandler = async () => {
         const fbUrl = await getCachedImage(fallback)
         el.src = fbUrl
-        el.removeEventListener('error', el._lazyErrorHandler)
+        el.removeEventListener('error', el._lazyErrorHandler!)
         el._lazyErrorHandler = null
       }
       el.addEventListener('error', el._lazyErrorHandler)
@@ -75,7 +73,7 @@ async function loadImage(el, src, fallback) {
 /**
  * 清理元素上的 observer 和事件监听
  */
-function cleanup(el) {
+function cleanup(el: LazyHTMLElement): void {
   if (el._lazyObserver) {
     el._lazyObserver.disconnect()
     el._lazyObserver = null
@@ -86,7 +84,7 @@ function cleanup(el) {
   }
 }
 
-export const lazyDirective = {
+export const lazyDirective: Directive<LazyHTMLElement, string | { src?: string; fallback?: string }> = {
   mounted(el, binding) {
     const { src, fallback } = parseBinding(binding.value)
     if (!src) return
@@ -104,7 +102,7 @@ export const lazyDirective = {
       if (fallback) {
         el._lazyErrorHandler = async () => {
           el.src = await getCachedImage(fallback)
-          el.removeEventListener('error', el._lazyErrorHandler)
+          el.removeEventListener('error', el._lazyErrorHandler!)
           el._lazyErrorHandler = null
         }
         el.addEventListener('error', el._lazyErrorHandler)
@@ -117,7 +115,7 @@ export const lazyDirective = {
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            el._lazyObserver.unobserve(el)
+            el._lazyObserver!.unobserve(el)
             el._lazyObserver = null
             loadImage(el, src, fallback)
             break
@@ -143,7 +141,7 @@ export const lazyDirective = {
       if (fallback) {
         el._lazyErrorHandler = async () => {
           el.src = await getCachedImage(fallback)
-          el.removeEventListener('error', el._lazyErrorHandler)
+          el.removeEventListener('error', el._lazyErrorHandler!)
           el._lazyErrorHandler = null
         }
         el.addEventListener('error', el._lazyErrorHandler)
@@ -159,7 +157,7 @@ export const lazyDirective = {
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            el._lazyObserver.unobserve(el)
+            el._lazyObserver!.unobserve(el)
             el._lazyObserver = null
             loadImage(el, src, fallback)
             break

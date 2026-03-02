@@ -11,25 +11,21 @@
  *   <img v-lazy="{ src: url, fallback: fallbackUrl }" />
  */
 
-import { lazyDirective, setGlobalOptions } from './directive.js'
-import { setCacheOptions, clearImageCache, getCacheStats } from './cache.js'
+import type { App, Plugin } from 'vue'
+import { lazyDirective, setGlobalOptions } from './directive'
+import { setCacheOptions, clearImageCache, getCacheStats } from './cache'
+import type { LazyLoadPluginOptions } from './types'
+
+export type * from './types'
 
 // 暴露缓存管理 API（不暴露内部查询方法，避免用户绕过指令直接操作缓存）
 export { clearImageCache, getCacheStats }
 
 /**
  * Vue 插件安装函数
- * @param {import('vue').App} app
- * @param {object} [options]
- * @param {string}  [options.rootMargin='200px'] - IntersectionObserver rootMargin
- * @param {string}  [options.loading]            - 加载中占位图 URL
- * @param {string}  [options.error]              - 加载失败占位图 URL
- * @param {boolean} [options.persistent=false]   - 是否开启 IndexedDB 持久化缓存
- * @param {number}  [options.maxMemory=150]      - L1 内存缓存最大条目数
- * @param {number}  [options.maxIdb=500]         - L2 IndexedDB 最大条目数
  */
-export const VueLazyLoad = {
-  install(app, options = {}) {
+export const VueLazyLoad: Plugin = {
+  install(app: App, options: LazyLoadPluginOptions = {}) {
     const { rootMargin, loading, error, persistent, maxMemory, maxIdb } = options
 
     if (rootMargin || loading || error) {

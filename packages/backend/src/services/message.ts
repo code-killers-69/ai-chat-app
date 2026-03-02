@@ -1,24 +1,19 @@
-import { v4 as uuidv4 } from 'uuid';
-import { getPool } from '../config/database.js';
-import { storageService } from './storage.js';
+import { v4 as uuidv4 } from 'uuid'
+import { getPool } from '../config/database'
+import { storageService } from './storage'
+import type { ImageData, SavedImage, MessageRow, ConversationRow, ImageRow, PaginationOptions, SearchOptions } from '../types'
 
 export const messageService = {
-  /**
-   * 创建会话
-   */
-  async createConversation(userId, title = '新对话') {
-    const id = uuidv4();
+  async createConversation(userId: string, title: string = '新对话') {
+    const id = uuidv4()
     await getPool().execute(
       'INSERT INTO conversations (id, user_id, title) VALUES (?, ?, ?)',
       [id, userId, title]
-    );
-    return { id, userId, title, createdAt: new Date() };
+    )
+    return { id, userId, title, createdAt: new Date() }
   },
 
-  /**
-   * 获取用户的所有会话
-   */
-  async getConversations(userId) {
+  async getConversations(userId: string) {
     const [rows] = await getPool().execute(
       `SELECT c.*, 
         (SELECT content FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
@@ -26,36 +21,28 @@ export const messageService = {
        WHERE c.user_id = ? 
        ORDER BY c.updated_at DESC`,
       [userId]
-    );
-    return rows;
+    ) as [ConversationRow[], unknown]
+    return rows
   },
 
-  /**
-   * 获取会话元信息（不含消息）
-   */
-  async getConversationInfo(conversationId, userId) {
+  async getConversationInfo(conversationId: string, userId: string) {
     const [rows] = await getPool().execute(
       'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
       [conversationId, userId]
-    );
-    return rows.length > 0 ? rows[0] : null;
+    ) as [ConversationRow[], unknown]
+    return rows.length > 0 ? rows[0] : null
   },
 
-  /**
-   * 获取会话详情（包含消息）
-   */
-  async getConversationWithMessages(conversationId, userId) {
-    // 验证会话所有权
+  async getConversationWithMessages(conversationId: string, userId: string) {
     const [convRows] = await getPool().execute(
       'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
       [conversationId, userId]
-    );
+    ) as [ConversationRow[], unknown]
 
     if (convRows.length === 0) {
-      return null;
+      return null
     }
 
-    // 获取消息
     const [messages] = await getPool().execute(
       `SELECT m.*, 
         (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'url', i.url, 'fallbackUrl', IFNULL(i.fallback_url, ''), 'storageType', i.storage_type))
@@ -64,7 +51,7 @@ export const messageService = {
        WHERE m.conversation_id = ? 
        ORDER BY m.created_at ASC`,
       [conversationId]
-    );
+    ) as [MessageRow[], unknown]
 
     return {
       ...convRows[0],
@@ -76,175 +63,127 @@ export const messageService = {
             : m.images
           : [],
       })),
-    };
+    }
   },
 
-  /**
-   * 保存用户消息
-   */
-  async saveUserMessage(conversationId, content, imageDataList = []) {
-    const messageId = uuidv4();
+  async saveUserMessage(conversationId: string, content: string, imageDataList: ImageData[] = []) {
+    const messageId = uuidv4()
 
     await getPool().execute(
       'INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)',
       [messageId, conversationId, 'user', content]
-    );
+    )
 
-    // 保存图片
-    const savedImages = [];
+    const savedImages: SavedImage[] = []
     for (const imageData of imageDataList) {
       const { url, storageType, size } = await storageService.saveImage(
         imageData.data,
         imageData.originalName || 'image.jpg',
         imageData.mimeType || 'image/jpeg'
-      );
+      )
 
-      const imageId = uuidv4();
+      const imageId = uuidv4()
       await getPool().execute(
         'INSERT INTO images (id, message_id, storage_type, url, fallback_url, original_name, mime_type, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          imageId,
-          messageId,
-          storageType,
-          url,
-          '',
-          imageData.originalName,
-          imageData.mimeType,
-          size,
-        ]
-      );
+        [imageId, messageId, storageType, url, '', imageData.originalName, imageData.mimeType, size]
+      )
 
-      savedImages.push({ id: imageId, url, fallbackUrl: '', storageType });
+      savedImages.push({ id: imageId, url, fallbackUrl: '', storageType })
     }
 
-    // 更新会话时间
     await getPool().execute(
       'UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [conversationId]
-    );
+    )
 
     return {
       id: messageId,
-      role: 'user',
+      role: 'user' as const,
       content,
       images: savedImages,
       createdAt: new Date(),
-    };
+    }
   },
 
-  /**
-   * 保存 AI 消息
-   */
-  async saveAssistantMessage(conversationId, content) {
-    const messageId = uuidv4();
+  async saveAssistantMessage(conversationId: string, content: string) {
+    const messageId = uuidv4()
 
     await getPool().execute(
       'INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)',
       [messageId, conversationId, 'assistant', content]
-    );
+    )
 
-    // 更新会话时间
     await getPool().execute(
       'UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [conversationId]
-    );
+    )
 
-    return { id: messageId, role: 'assistant', content, createdAt: new Date() };
+    return { id: messageId, role: 'assistant' as const, content, createdAt: new Date() }
   },
 
-  /**
-   * 更新图片的兜底 URL
-   */
-  async updateImageFallback(imageId, fallbackUrl) {
+  async updateImageFallback(imageId: string, fallbackUrl: string) {
     const [result] = await getPool().execute(
       'UPDATE images SET fallback_url = ? WHERE id = ?',
       [fallbackUrl, imageId]
-    );
-    return result.affectedRows > 0;
+    ) as [{ affectedRows: number }, unknown]
+    return result.affectedRows > 0
   },
 
-  /**
-   * 删除会话
-   */
-  async deleteConversation(conversationId, userId) {
-    // 先获取所有图片以便删除
+  async deleteConversation(conversationId: string, userId: string) {
     const [images] = await getPool().execute(
       `SELECT i.* FROM images i 
        JOIN messages m ON i.message_id = m.id 
        JOIN conversations c ON m.conversation_id = c.id 
        WHERE c.id = ? AND c.user_id = ?`,
       [conversationId, userId]
-    );
+    ) as [ImageRow[], unknown]
 
-    // 删除图片文件
     for (const image of images) {
-      await storageService.deleteImage(image.url, image.storage_type);
+      await storageService.deleteImage(image.url, image.storage_type)
       if (image.fallback_url) {
-        await storageService.deleteImage(image.fallback_url, image.storage_type);
+        await storageService.deleteImage(image.fallback_url, image.storage_type)
       }
     }
 
-    // 删除会话（级联删除消息和图片记录）
     await getPool().execute(
       'DELETE FROM conversations WHERE id = ? AND user_id = ?',
       [conversationId, userId]
-    );
+    )
   },
 
-  /**
-   * 更新会话标题
-   */
-  async updateConversationTitle(conversationId, userId, title) {
+  async updateConversationTitle(conversationId: string, userId: string, title: string) {
     await getPool().execute(
       'UPDATE conversations SET title = ? WHERE id = ? AND user_id = ?',
       [title, conversationId, userId]
-    );
+    )
   },
 
-  /**
-   * 分页获取会话消息（储备接口）
-   * @param {string} conversationId - 会话ID
-   * @param {string} userId - 用户ID
-   * @param {Object} options - 分页选项
-   * @param {number} options.limit - 每页数量，默认20
-   * @param {string} options.before - 获取此消息ID之前的消息（向上滚动加载更早的）
-   * @param {string} options.after - 获取此消息ID之后的消息（向下加载更新的）
-   */
-  async getMessagesPaginated(conversationId, userId, options = {}) {
-    const { limit = 20, before, after } = options;
+  async getMessagesPaginated(conversationId: string, userId: string, options: PaginationOptions = {}) {
+    const { limit = 20, before, after } = options
+    const safeLimit = Math.max(1, Math.min(typeof limit === 'string' ? parseInt(limit, 10) : limit || 20, 100))
 
-    // 确保 limit 是安全的正整数
-    const safeLimit = Math.max(1, Math.min(parseInt(limit, 10) || 20, 100));
-
-    // 验证会话所有权
     const [convRows] = await getPool().execute(
       'SELECT * FROM conversations WHERE id = ? AND user_id = ?',
       [conversationId, userId]
-    );
+    ) as [ConversationRow[], unknown]
 
     if (convRows.length === 0) {
-      return null;
+      return null
     }
 
-    // 构建查询条件
-    let whereClause = 'm.conversation_id = ?';
-    const params = [conversationId];
+    let whereClause = 'm.conversation_id = ?'
+    const params: string[] = [conversationId]
 
     if (before) {
-      // 获取指定消息之前的消息（更早的）
-      whereClause += ' AND m.created_at < (SELECT created_at FROM messages WHERE id = ?)';
-      params.push(before);
+      whereClause += ' AND m.created_at < (SELECT created_at FROM messages WHERE id = ?)'
+      params.push(before)
     } else if (after) {
-      // 获取指定消息之后的消息（更新的）
-      whereClause += ' AND m.created_at > (SELECT created_at FROM messages WHERE id = ?)';
-      params.push(after);
+      whereClause += ' AND m.created_at > (SELECT created_at FROM messages WHERE id = ?)'
+      params.push(after)
     }
 
-    // 获取消息
-    // before 查询或默认：按时间倒序取最近的 N 条，再反转为正序
-    // after 查询：按时间正序取
-    const orderDirection = before ? 'DESC' : (after ? 'ASC' : 'DESC');
-    
+    const orderDirection = before ? 'DESC' : (after ? 'ASC' : 'DESC')
+
     const [messages] = await getPool().execute(
       `SELECT m.*, 
         (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', i.id, 'url', i.url, 'fallbackUrl', IFNULL(i.fallback_url, ''), 'storageType', i.storage_type))
@@ -254,38 +193,35 @@ export const messageService = {
        ORDER BY m.created_at ${orderDirection}
        LIMIT ${safeLimit}`,
       params
-    );
+    ) as [MessageRow[], unknown]
 
-    // 如果是倒序取的，反转回正序
     if (orderDirection === 'DESC') {
-      messages.reverse();
+      messages.reverse()
     }
 
-    // 获取总消息数
     const [countResult] = await getPool().execute(
       'SELECT COUNT(*) as total FROM messages WHERE conversation_id = ?',
       [conversationId]
-    );
+    ) as [Array<{ total: number }>, unknown]
 
-    // 判断是否还有更早的消息
-    let hasMoreBefore = false;
-    let hasMoreAfter = false;
-    
+    let hasMoreBefore = false
+    let hasMoreAfter = false
+
     if (messages.length > 0) {
-      const firstMessage = messages[0];
-      const lastMessage = messages[messages.length - 1];
-      
+      const firstMessage = messages[0]
+      const lastMessage = messages[messages.length - 1]
+
       const [olderCount] = await getPool().execute(
         'SELECT COUNT(*) as count FROM messages WHERE conversation_id = ? AND created_at < ?',
         [conversationId, firstMessage.created_at]
-      );
-      hasMoreBefore = olderCount[0].count > 0;
+      ) as [Array<{ count: number }>, unknown]
+      hasMoreBefore = olderCount[0].count > 0
 
       const [newerCount] = await getPool().execute(
         'SELECT COUNT(*) as count FROM messages WHERE conversation_id = ? AND created_at > ?',
         [conversationId, lastMessage.created_at]
-      );
-      hasMoreAfter = newerCount[0].count > 0;
+      ) as [Array<{ count: number }>, unknown]
+      hasMoreAfter = newerCount[0].count > 0
     }
 
     return {
@@ -304,23 +240,13 @@ export const messageService = {
         hasMoreBefore,
         hasMoreAfter,
       },
-    };
+    }
   },
 
-  /**
-   * 全文搜索消息
-   * @param {string} userId - 用户 ID
-   * @param {string} keyword - 搜索关键词
-   * @param {object} options
-   * @param {number} [options.limit=20] - 返回数量
-   * @param {number} [options.offset=0] - 偏移量
-   * @returns {Promise<{messages: Array, total: number}>}
-   */
-  async searchMessages(userId, keyword, options = {}) {
-    const safeLimit = Math.max(1, Math.min(parseInt(options.limit, 10) || 20, 50));
-    const safeOffset = Math.max(0, parseInt(options.offset, 10) || 0);
+  async searchMessages(userId: string, keyword: string, options: SearchOptions = {}) {
+    const safeLimit = Math.max(1, Math.min(typeof options.limit === 'string' ? parseInt(options.limit, 10) : options.limit || 20, 50))
+    const safeOffset = Math.max(0, typeof options.offset === 'string' ? parseInt(options.offset, 10) : options.offset || 0)
 
-    // 用 FULLTEXT 搜索，要求 messages 属于当前用户的会话
     const [messages] = await getPool().execute(
       `SELECT m.id, m.conversation_id, m.role, m.content, m.created_at,
               c.title as conversation_title,
@@ -331,16 +257,23 @@ export const messageService = {
        ORDER BY relevance DESC, m.created_at DESC
        LIMIT ${safeLimit} OFFSET ${safeOffset}`,
       [keyword, userId, keyword]
-    );
+    ) as [Array<{
+      id: string
+      conversation_id: string
+      role: string
+      content: string
+      created_at: Date
+      conversation_title: string
+      relevance: number
+    }>, unknown]
 
-    // 总数
     const [countResult] = await getPool().execute(
       `SELECT COUNT(*) as total
        FROM messages m
        JOIN conversations c ON c.id = m.conversation_id AND c.user_id = ?
        WHERE MATCH(m.content) AGAINST(? IN BOOLEAN MODE)`,
       [userId, keyword]
-    );
+    ) as [Array<{ total: number }>, unknown]
 
     return {
       messages: messages.map(m => ({
@@ -355,6 +288,6 @@ export const messageService = {
       total: countResult[0].total,
       limit: safeLimit,
       offset: safeOffset,
-    };
+    }
   },
-};
+}
