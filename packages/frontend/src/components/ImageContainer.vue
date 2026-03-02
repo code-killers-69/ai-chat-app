@@ -17,33 +17,27 @@
     </div>
 </template>
 
-<script setup>
-import { computed, ref } from 'vue';
+<script setup lang="ts">
+import { computed, ref } from 'vue'
 
-const props = defineProps({
-    imageUrl: {
-        type: String,
-        required: true,
-    },
-    fallbackUrl: {
-        type: String,
-        default: '',
-    },
-    size: {
-        type: String,
-        default: '80px'
-    },
-    enableLoadingAnimation: {
-        type: Boolean,
-        default: false
-    },
-    enableDeleteBtn: {
-        type: Boolean,
-        default: false
-    }
+const props = withDefaults(defineProps<{
+    imageUrl: string
+    fallbackUrl?: string
+    size?: string
+    enableLoadingAnimation?: boolean
+    enableDeleteBtn?: boolean
+}>(), {
+    fallbackUrl: '',
+    size: '80px',
+    enableLoadingAnimation: false,
+    enableDeleteBtn: false,
 })
 
-const emit = defineEmits(['onImageLoaded', 'onImageDeleted'])
+const emit = defineEmits<{
+    onImageLoaded: []
+    onImageDeleted: []
+}>()
+
 const isLoaded = ref(false)
 
 const lazyBinding = computed(() => {
@@ -62,7 +56,7 @@ const onDelete = () => {
     emit('onImageDeleted')
 }
 
-const imageContainer = ref(null)
+const imageContainer = ref<HTMLDivElement | null>(null)
 const showDeleteBtn = ref(false)
 </script>
 

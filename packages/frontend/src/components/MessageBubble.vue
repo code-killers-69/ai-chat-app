@@ -21,32 +21,26 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import ImageContainer from './ImageContainer.vue'
-import { useMarkdown } from '../composables/useMarkdown.js'
+import { useMarkdown } from '../composables/useMarkdown'
+import type { Message } from '../models/Message'
 
-const props = defineProps({
-  message: {
-    type: Object,
-    required: true,
-  },
-  content: {
-    type: String,
-    default: '',
-  },
-  isStreaming: {
-    type: Boolean,
-    default: false,
-  },
-})
+const props = defineProps<{
+  message: Message
+  content: string
+  isStreaming?: boolean
+}>()
 
-defineEmits(['imageLoaded'])
+defineEmits<{
+  imageLoaded: []
+}>()
 
 const { renderMarkdown, renderMarkdownAsync, escapeHtml } = useMarkdown()
 
 // Worker 异步渲染结果缓存
-const workerHtml = ref(null)
+const workerHtml = ref<string | null>(null)
 
 // 流式时用主线程同步渲染，流式结束后优先用 Worker 结果
 const renderedHtml = computed(() => {

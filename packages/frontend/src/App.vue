@@ -23,21 +23,22 @@
   <AuthModal :show="showAuthModal" @close="showAuthModal = false" @success="handleLoginSuccess" />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, defineAsyncComponent } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import ChatArea from './components/ChatArea.vue'
 const AuthModal = defineAsyncComponent(() => import('./components/AuthModal.vue'))
-import { chatAPI } from './api/chat.js'
+import { chatAPI } from './api/chat'
+import type { UserInfo, ServerMessage, PaginationInfo } from './types'
 
 // 认证状态
 const showAuthModal = ref(false)
 const isLoggedIn = ref(chatAPI.auth.isLoggedIn())
-const user = ref(chatAPI.auth.getUser())
+const user = ref<UserInfo | null>(chatAPI.auth.getUser())
 
 // 组件引用
-const sidebarRef = ref(null)
-const chatAreaRef = ref(null)
+const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
+const chatAreaRef = ref<InstanceType<typeof ChatArea> | null>(null)
 
 // 登录成功
 const handleLoginSuccess = () => {
@@ -61,7 +62,7 @@ const handleNewChat = () => {
 }
 
 // 会话需要从服务器初始化加载（缓存未命中）
-const handleConversationInit = async (convId) => {
+const handleConversationInit = async (convId: string) => {
   try {
     const result = await chatAreaRef.value?.initMessages(convId)
     // 加载完成后更新 Sidebar 缓存
@@ -74,7 +75,7 @@ const handleConversationInit = async (convId) => {
 }
 
 // 会话从缓存加载（缓存命中）
-const handleConversationCached = ({ messages, pagination }) => {
+const handleConversationCached = ({ messages, pagination }: { messages: ServerMessage[]; pagination: PaginationInfo }) => {
   chatAreaRef.value?.loadFromCache(messages, pagination)
 }
 
@@ -84,7 +85,7 @@ const handleNewConversationCreated = () => {
 }
 
 // 历史消息加载后同步缓存
-const handleCacheUpdated = ({ convId, messages, pagination }) => {
+const handleCacheUpdated = ({ convId, messages, pagination }: { convId: string; messages: ServerMessage[]; pagination: PaginationInfo }) => {
   sidebarRef.value?.updateMessagesCache(convId, { messages, pagination })
 }
 

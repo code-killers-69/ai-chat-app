@@ -38,21 +38,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import ImageContainer from './ImageContainer.vue'
-import { MessageImage } from '../models/Message.js'
-import { compressImage } from '../composables/useImageCompress.js'
+import { MessageImage } from '../models/Message'
+import { compressImage } from '../composables/useImageCompress'
 
-defineProps({
-  isLoading: Boolean,
-})
+defineProps<{
+  isLoading: boolean
+}>()
 
-const emit = defineEmits(['send'])
+const emit = defineEmits<{
+  send: [payload: { content: string; images: MessageImage[] }]
+}>()
 
-const inputRef = ref(null)
-const fileInput = ref(null)
-const images = ref([])
+const inputRef = ref<HTMLDivElement | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+const images = ref<MessageImage[]>([])
 
 let previewImageCount = 0
 
@@ -62,7 +64,7 @@ const onPreviewImageLoaded = () => {
   }
 }
 
-const addCompressedImage = async (file) => {
+const addCompressedImage = async (file: File | Blob) => {
   try {
     const { file: compressed, url, originalFile } = await compressImage(file)
     images.value.push(new MessageImage({ imageUrl: url, file: compressed, originalFile }))
@@ -71,16 +73,16 @@ const addCompressedImage = async (file) => {
   }
 }
 
-const handleFileChange = async (e) => {
-  const files = e.target.files
-  if (files.length === 0) return
+const handleFileChange = async (e: Event) => {
+  const files = (e.target as HTMLInputElement).files
+  if (!files || files.length === 0) return
   for (const file of files) {
     await addCompressedImage(file)
   }
-  e.target.value = ''
+  ;(e.target as HTMLInputElement).value = ''
 }
 
-const handlePaste = async (e) => {
+const handlePaste = async (e: ClipboardEvent) => {
   const files = e.clipboardData?.files
   if (!files || files.length === 0) return
   for (const file of files) {
@@ -91,7 +93,7 @@ const handlePaste = async (e) => {
   }
 }
 
-const onImageDeleted = (index) => {
+const onImageDeleted = (index: number) => {
   images.value.splice(index, 1)
 }
 

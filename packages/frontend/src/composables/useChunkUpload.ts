@@ -11,21 +11,16 @@
  */
 
 import ChunkUploadWorker from '@/workers/chunk-upload.worker.js?worker'
-import { http } from '@/api/http.js'
+import { http } from '@/api/http'
+import type { ChunkUploadOptions, ChunkUploadResult, ApiResponse } from '@/types'
 
 const CHUNK_THRESHOLD = 256 * 1024 // 超过 256KB 才走分片
 
 export function useChunkUpload() {
   /**
    * 上传文件（自动判断走分片或普通上传）
-   * @param {File|Blob} file
-   * @param {object} options
-   * @param {string} options.filename
-   * @param {string} options.mimeType
-   * @param {function} [options.onProgress] - ({ uploaded, total, percent }) => void
-   * @returns {Promise<{ url, size, storageType }>}
    */
-  async function upload(file, options = {}) {
+  async function upload(file: File | Blob, options: ChunkUploadOptions = {}): Promise<ChunkUploadResult> {
     const { filename, mimeType, onProgress } = options
 
     // 小文件走普通上传
@@ -33,24 +28,24 @@ export function useChunkUpload() {
       const formData = new FormData()
       formData.append('images', file, filename)
       const res = await http.requestFormData('/chat/upload-fallbacks', formData)
-      const data = await res.json()
+      const data: ApiResponse<ChunkUploadResult> = await res.json()
       if (!data.success) throw new Error(data.error || '上传失败')
       return data.data
     }
 
     // 大文件走 Worker 分片上传
-    return new Promise((resolve, reject) => {
+    return new Promise<ChunkUploadResult>((resolve, reject) => {
       const worker = new ChunkUploadWorker()
 
       worker.postMessage({
         file,
-        filename: filename || file.name || 'image.jpg',
+        filename: filename || (file instanceof File ? file.name : 'image.jpg'),
         mimeType: mimeType || file.type || 'image/jpeg',
         token: http.token,
         apiBase: '/api',
       })
 
-      worker.addEventListener('message', (e) => {
+      worker.addEventListener('message', (e: MessageEvent) => {
         const msg = e.data
         if (msg.type === 'progress') {
           onProgress?.(msg)
@@ -64,7 +59,7 @@ export function useChunkUpload() {
         }
       })
 
-      worker.addEventListener('error', (e) => {
+      worker.addEventListener('error', (e: ErrorEvent) => {
         worker.terminate()
         reject(new Error(e.message || '上传 Worker 异常'))
       })

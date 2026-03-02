@@ -11,20 +11,21 @@
  */
 
 import MarkdownWorker from '@/workers/markdown.worker.js?worker'
+import type { MarkdownBatchItem, MarkdownBatchResult } from '../types'
 
 // ─── 主线程渲染（同步兜底）─────────────────────────────────
 
-let markedParse = null
-let purify = null
+let markedParse: ((content: string) => string) | null = null
+let purify: ((html: string) => string) | null = null
 
-async function ensureMarked() {
+async function ensureMarked(): Promise<void> {
   if (markedParse) return
   const [{ marked }, DOMPurify] = await Promise.all([
     import('marked'),
     import('dompurify').then(m => m.default || m),
   ])
   marked.setOptions({ breaks: true, gfm: true })
-  markedParse = marked.parse.bind(marked)
+  markedParse = marked.parse.bind(marked) as (content: string) => string
   purify = DOMPurify.sanitize.bind(DOMPurify)
 }
 
@@ -37,16 +38,16 @@ if (typeof requestIdleCallback === 'function') {
 
 // ─── Worker 通道 ────────────────────────────────────────
 
-let worker = null
+let worker: Worker | null = null
 let reqId = 0
-const pendingCallbacks = new Map()
+const pendingCallbacks = new Map<number, (value: unknown) => void>()
 
-function getWorker() {
+function getWorker(): Worker | null {
   if (worker) return worker
   try {
     worker = new MarkdownWorker()
-    worker.addEventListener('message', (e) => {
-      const { id, html, batch } = e.data
+    worker.addEventListener('message', (e: MessageEvent) => {
+      const { id, html, batch } = e.data as { id: number; html?: string; batch?: MarkdownBatchResult[] }
       const resolve = pendingCallbacks.get(id)
       if (resolve) {
         pendingCallbacks.delete(id)
@@ -78,7 +79,7 @@ export function useMarkdown() {
   /**
    * 同步渲染 Markdown（主线程，用于流式场景）
    */
-  function renderMarkdown(content) {
+  function renderMarkdown(content: string): string {
     if (!content) return ''
     if (markedParse && purify) return purify(markedParse(content))
     ensureMarked()
@@ -89,14 +90,14 @@ export function useMarkdown() {
    * 异步渲染 Markdown（Worker 线程，用于完整消息/历史加载）
    * Worker 不可用时自动降级到主线程
    */
-  function renderMarkdownAsync(content) {
+  function renderMarkdownAsync(content: string): Promise<string> {
     if (!content) return Promise.resolve('')
 
     const w = getWorker()
     if (w) {
-      return new Promise((resolve) => {
+      return new Promise<string>((resolve) => {
         const id = ++reqId
-        pendingCallbacks.set(id, resolve)
+        pendingCallbacks.set(id, resolve as (value: unknown) => void)
         w.postMessage({ id, content })
         // 超时兜底：3 秒未响应走主线程
         setTimeout(() => {
@@ -114,17 +115,15 @@ export function useMarkdown() {
 
   /**
    * 批量异步渲染（Worker 线程，加载大量历史消息时使用）
-   * @param {Array<{key: string, content: string}>} items
-   * @returns {Promise<Array<{key: string, html: string}>>}
    */
-  function renderMarkdownBatch(items) {
+  function renderMarkdownBatch(items: MarkdownBatchItem[]): Promise<MarkdownBatchResult[]> {
     if (!items || items.length === 0) return Promise.resolve([])
 
     const w = getWorker()
     if (w) {
-      return new Promise((resolve) => {
+      return new Promise<MarkdownBatchResult[]>((resolve) => {
         const id = ++reqId
-        pendingCallbacks.set(id, resolve)
+        pendingCallbacks.set(id, resolve as (value: unknown) => void)
         w.postMessage({ id, batch: items })
         setTimeout(() => {
           if (pendingCallbacks.has(id)) {
@@ -145,7 +144,7 @@ export function useMarkdown() {
     })))
   }
 
-  function escapeHtml(text) {
+  function escapeHtml(text: string): string {
     if (!text) return ''
     return text
       .replace(/&/g, '&amp;')

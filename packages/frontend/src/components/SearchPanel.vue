@@ -51,25 +51,29 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
-import { chatAPI } from '../api/chat.js'
+import { chatAPI } from '../api/chat'
+import type { SearchResult } from '../types'
 
-const props = defineProps({
-  visible: Boolean,
-})
+const props = defineProps<{
+  visible: boolean
+}>()
 
-const emit = defineEmits(['close', 'select'])
+const emit = defineEmits<{
+  close: []
+  select: [result: { conversationId: string; messageId: string }]
+}>()
 
-const searchInputRef = ref(null)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 const keyword = ref('')
-const results = ref([])
+const results = ref<SearchResult[]>([])
 const total = ref(0)
 const loading = ref(false)
 const loadingMore = ref(false)
 const noResults = ref(false)
 
-let debounceTimer = null
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 watch(() => props.visible, (val) => {
   if (val) {
@@ -125,7 +129,7 @@ async function loadMore() {
   }
 }
 
-function highlightKeyword(text) {
+function highlightKeyword(text: string): string {
   if (!text || !keyword.value.trim()) return escapeHtml(text)
   const escaped = escapeHtml(text)
   // 截取关键词前后各 50 字符的摘要
@@ -141,27 +145,27 @@ function highlightKeyword(text) {
   return snippet.replace(regex, '<mark>$1</mark>')
 }
 
-function escapeHtml(text) {
+function escapeHtml(text: string): string {
   if (!text) return ''
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-function escapeRegex(str) {
+function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function formatTime(dateStr) {
+function formatTime(dateStr: string): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   const now = new Date()
-  const diff = now - d
+  const diff = now.getTime() - d.getTime()
   if (diff < 86400000 && d.getDate() === now.getDate()) {
     return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
   }
   return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
-function handleSelect(item) {
+function handleSelect(item: SearchResult) {
   emit('select', {
     conversationId: item.conversationId,
     messageId: item.id,

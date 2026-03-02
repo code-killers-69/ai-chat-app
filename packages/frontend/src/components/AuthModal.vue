@@ -61,61 +61,64 @@
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-import { chatAPI } from '../api/chat.js';
+<script setup lang="ts">
+import { ref } from 'vue'
+import { chatAPI } from '../api/chat'
 
-const props = defineProps({
-  show: Boolean
-});
+defineProps<{
+  show: boolean
+}>()
 
-const emit = defineEmits(['close', 'success']);
+const emit = defineEmits<{
+  close: []
+  success: []
+}>()
 
-const isLogin = ref(true);
-const username = ref('');
-const nickname = ref('');
-const password = ref('');
-const confirmPassword = ref('');
-const error = ref('');
-const loading = ref(false);
+const isLogin = ref(true)
+const username = ref('')
+const nickname = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const error = ref('')
+const loading = ref(false)
 
 const toggleMode = () => {
-  isLogin.value = !isLogin.value;
-  error.value = '';
-};
+  isLogin.value = !isLogin.value
+  error.value = ''
+}
 
 const handleSubmit = async () => {
-  error.value = '';
+  error.value = ''
   
   if (!isLogin.value && password.value !== confirmPassword.value) {
-    error.value = '两次密码输入不一致';
-    return;
+    error.value = '两次密码输入不一致'
+    return
   }
   
-  loading.value = true;
+  loading.value = true
   
   try {
     if (isLogin.value) {
-      await chatAPI.auth.login(username.value, password.value);
+      await chatAPI.auth.login(username.value, password.value)
     } else {
-      await chatAPI.auth.register(username.value, password.value, nickname.value);
-      await chatAPI.auth.login(username.value, password.value);
+      await chatAPI.auth.register(username.value, password.value, nickname.value)
+      await chatAPI.auth.login(username.value, password.value)
     }
     
-    emit('success');
-    emit('close');
+    emit('success')
+    emit('close')
     
     // 重置表单
-    username.value = '';
-    nickname.value = '';
-    password.value = '';
-    confirmPassword.value = '';
+    username.value = ''
+    nickname.value = ''
+    password.value = ''
+    confirmPassword.value = ''
   } catch (err) {
-    error.value = err.message;
+    error.value = (err as Error).message
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 </script>
 
 <style scoped>

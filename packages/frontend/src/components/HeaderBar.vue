@@ -39,28 +39,33 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { chatAPI } from '../api/chat.js'
+import { chatAPI } from '../api/chat'
+import type { ModelInfo, UserInfo } from '../types'
 
-defineProps({
-  isLoggedIn: Boolean,
-  user: Object,
-})
+defineProps<{
+  isLoggedIn: boolean
+  user: UserInfo | null
+}>()
 
-const emit = defineEmits(['showLogin', 'logout', 'modelChange'])
+const emit = defineEmits<{
+  showLogin: []
+  logout: []
+  modelChange: [modelId: string]
+}>()
 
-const models = ref([])
-const selectedModelId = ref(null)
-const currentModel = ref(null)
+const models = ref<ModelInfo[]>([])
+const selectedModelId = ref<string | null>(null)
+const currentModel = ref<ModelInfo | null>(null)
 const showDropdown = ref(false)
-const selectorRef = ref(null)
+const selectorRef = ref<HTMLDivElement | null>(null)
 
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
 }
 
-const selectModel = (m) => {
+const selectModel = (m: ModelInfo) => {
   selectedModelId.value = m.id
   currentModel.value = m
   showDropdown.value = false
@@ -69,8 +74,8 @@ const selectModel = (m) => {
 }
 
 // 点击外部关闭
-const handleClickOutside = (e) => {
-  if (selectorRef.value && !selectorRef.value.contains(e.target)) {
+const handleClickOutside = (e: MouseEvent) => {
+  if (selectorRef.value && !selectorRef.value.contains(e.target as Node)) {
     showDropdown.value = false
   }
 }

@@ -57,38 +57,46 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
-import { chatAPI } from '../api/chat.js'
-import { Conversation } from '../models/Conversation.js'
+import { chatAPI } from '../api/chat'
+import { Conversation } from '../models/Conversation'
 import SearchPanel from './SearchPanel.vue'
+import type { ServerMessage, PaginationInfo, MessagesCacheEntry, PaginatedMessages } from '../types'
 
-const props = defineProps({
-  isLoggedIn: Boolean
-})
+const props = defineProps<{
+  isLoggedIn: boolean
+}>()
 
-const emit = defineEmits(['newChat', 'switchConversation', 'conversationInit', 'conversationCached', 'conversationDeleted', 'searchSelect'])
+const emit = defineEmits<{
+  newChat: []
+  switchConversation: [convId: string]
+  conversationInit: [convId: string]
+  conversationCached: [payload: { messages: ServerMessage[]; pagination: PaginationInfo }]
+  conversationDeleted: []
+  searchSelect: [result: { conversationId: string; messageId: string }]
+}>()
 
-const conversationList = ref([])
-const currentConversationId = ref(null)
+const conversationList = ref<Conversation[]>([])
+const currentConversationId = ref<string | null>(null)
 
 // 消息缓存：key 为 conversationId，value 为 { updatedAt, messages, pagination }
-const messagesCache = new Map()
+const messagesCache = new Map<string, MessagesCacheEntry>()
 
 // 临时保存最近一次 getConversationInfo 拿到的 updatedAt
 let lastFetchedUpdatedAt = ''
 
 // 编辑状态
-const editingId = ref(null)
+const editingId = ref<string | null>(null)
 const editingTitle = ref('')
-const editInputRef = ref(null)
-let longPressTimer = null
+const editInputRef = ref<HTMLInputElement[] | null>(null)
+let longPressTimer: ReturnType<typeof setTimeout> | null = null
 const LONG_PRESS_DURATION = 500 // 长按时间 500ms
 
 // 搜索状态
 const showSearch = ref(false)
 
-const handleSearchSelect = (result) => {
+const handleSearchSelect = (result: { conversationId: string; messageId: string }) => {
   showSearch.value = false
   // 切换到对应会话并定位消息
   emit('searchSelect', result)
@@ -99,7 +107,7 @@ const handleSearchSelect = (result) => {
 }
 
 // 长按开始
-const startLongPress = (conv) => {
+const startLongPress = (conv: Conversation) => {
   longPressTimer = setTimeout(() => {
     startEdit(conv)
   }, LONG_PRESS_DURATION)
@@ -114,7 +122,7 @@ const cancelLongPress = () => {
 }
 
 // 开始编辑
-const startEdit = (conv) => {
+const startEdit = (conv: Conversation) => {
   editingId.value = conv.id
   editingTitle.value = conv.title || ''
   nextTick(() => {
@@ -124,7 +132,7 @@ const startEdit = (conv) => {
 }
 
 // 完成编辑
-const finishEdit = async (conv) => {
+const finishEdit = async (conv: Conversation) => {
   const newTitle = editingTitle.value.trim()
   if (newTitle && newTitle !== conv.title) {
     try {
@@ -149,14 +157,14 @@ const loadConversationList = async () => {
   if (!props.isLoggedIn) return
   try {
     const rawList = await chatAPI.conversations.getConversations()
-    conversationList.value = rawList.map(conv => Conversation.fromServer(conv))
+    conversationList.value = rawList.map((conv: Record<string, unknown>) => Conversation.fromServer(conv))
   } catch (e) {
     console.error('加载会话列表失败:', e)
   }
 }
 
 // 加载指定会话（带缓存对比）
-const loadConversation = async (convId) => {
+const loadConversation = async (convId: string) => {
   try {
     // 轻量请求：只拉取该会话的元信息（不含消息）
     const convInfo = await chatAPI.conversations.getConversationInfo(convId)
@@ -193,7 +201,7 @@ const loadLatestConversation = async () => {
 }
 
 // 切换会话
-const handleSwitch = async (convId) => {
+const handleSwitch = async (convId: string) => {
   if (editingId.value) return // 编辑中不切换
   if (convId === currentConversationId.value) return
 
@@ -202,12 +210,12 @@ const handleSwitch = async (convId) => {
 }
 
 // 删除会话
-const handleDelete = async (convId) => {
+const handleDelete = async (convId: string) => {
   try {
     await chatAPI.conversations.deleteConversation(convId)
     
     // 从列表中移除
-    const index = conversationList.value.findIndex(c => c.id === convId)
+    const index = conversationList.value.findIndex((c: Conversation) => c.id === convId)
     if (index !== -1) {
       conversationList.value.splice(index, 1)
     }
@@ -252,7 +260,7 @@ const refreshAndSetCurrent = async () => {
 }
 
 // 更新消息缓存（供外部在分页加载完成后调用）
-const updateMessagesCache = (convId, data) => {
+const updateMessagesCache = (convId: string, data: { messages: ServerMessage[]; pagination: PaginationInfo }) => {
   messagesCache.set(convId, {
     updatedAt: lastFetchedUpdatedAt,
     messages: data.messages,

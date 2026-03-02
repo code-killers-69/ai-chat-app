@@ -22,31 +22,37 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, shallowRef, triggerRef, nextTick } from 'vue'
 import HeaderBar from './HeaderBar.vue'
 import MessageBubble from './MessageBubble.vue'
 import MessageInput from './MessageInput.vue'
-import { chatAPI } from '../api/chat.js'
-import { Message } from '../models/Message.js'
+import { chatAPI } from '../api/chat'
+import { Message } from '../models/Message'
+import type { UserInfo, ServerMessage, PaginationInfo, PaginatedMessages } from '../types'
 
-defineProps({
-    isLoggedIn: Boolean,
-    user: Object,
-})
+defineProps<{
+    isLoggedIn: boolean
+    user: UserInfo | null
+}>()
 
-const emit = defineEmits(['showLogin', 'logout', 'newConversationCreated', 'cacheUpdated'])
+const emit = defineEmits<{
+  showLogin: []
+  logout: []
+  newConversationCreated: []
+  cacheUpdated: [payload: { convId: string; messages: ServerMessage[]; pagination: PaginationInfo }]
+}>()
 
 // ========== 状态 ==========
-const messages = shallowRef([])
+const messages = shallowRef<Message[]>([])
 const isLoading = ref(false)
-const scrollArea = ref(null)
+const scrollArea = ref<HTMLDivElement | null>(null)
 
 // 分页状态
 const hasMoreBefore = ref(false)
 const hasMoreAfter = ref(false)
 const isLoadingOlder = ref(false)
-const currentConversationId = ref(null)
+const currentConversationId = ref<string | null>(null)
 // 初始化期间禁止触发加载历史消息（scrollTop 为 0 会误触发）
 let isInitializing = false
 
@@ -57,7 +63,7 @@ function isNearBottom(threshold = 150) {
     return scrollHeight - scrollTop - clientHeight < threshold
 }
 
-function scrollToBottom(behavior = 'smooth') {
+function scrollToBottom(behavior: ScrollBehavior = 'smooth') {
     const doScroll = () => {
         if (!scrollArea.value) return
         scrollArea.value.scrollTo({
@@ -144,9 +150,9 @@ const onMessageImageLoaded = () => {
 }
 
 // ========== 发送消息 ==========
-let chunkRAF = null
+let chunkRAF: number | null = null
 
-const handleSend = async ({ content, images }) => {
+const handleSend = async ({ content, images }: { content: string; images: import('../models/Message').MessageImage[] }) => {
     if (isLoading.value) return
 
     const userMsg = Message.createUserMessage({ content, images })
@@ -205,7 +211,7 @@ const handleSend = async ({ content, images }) => {
             cancelAnimationFrame(chunkRAF)
             chunkRAF = null
         }
-        aiMsg.setError(error.message)
+        aiMsg.setError((error as Error).message)
         triggerRef(messages)
         isLoading.value = false
     }
@@ -217,7 +223,7 @@ const handleSend = async ({ content, images }) => {
  * 初始加载会话消息（首次进入会话时调用）
  * @returns {object|null} 返回原始分页数据供缓存
  */
-const initMessages = async (convId) => {
+const initMessages = async (convId: string): Promise<PaginatedMessages | null> => {
     currentConversationId.value = convId
     isInitializing = true
 
@@ -245,7 +251,7 @@ const initMessages = async (convId) => {
 /**
  * 从缓存加载消息
  */
-const loadFromCache = (msgList, pagination = {}) => {
+const loadFromCache = (msgList: ServerMessage[], pagination: Partial<PaginationInfo> = {}) => {
     currentConversationId.value = chatAPI.conversationId
     isInitializing = true
     messages.value = msgList.map(m => Message.fromServer(m))
