@@ -1,4 +1,4 @@
-import type { ServerConversation } from '../types'
+import type { ServerConversation } from '@chat-app/shared'
 
 /**
  * 会话模型

@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import { getPool } from '../config/database'
 import { storageService } from './storage'
-import type { ImageData, SavedImage, MessageRow, ConversationRow, ImageRow, PaginationOptions, SearchOptions } from '../types'
+import type { PaginationOptions, SearchOptions } from '@chat-app/shared'
+import type { ImageData, SavedImage, MessageRow, ConversationRow, ImageRow } from '../types'
 
 export const messageService = {
   async createConversation(userId: string, title: string = '新对话') {

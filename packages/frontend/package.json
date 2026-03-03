@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@chat-app/shared": "workspace:*",
     "@code-killer/vue-lazy-load": "workspace:*",
     "dompurify": "^3.3.1",
     "marked": "^17.0.1",

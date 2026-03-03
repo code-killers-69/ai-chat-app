@@ -12,7 +12,8 @@
 
 import ChunkUploadWorker from '@/workers/chunk-upload.worker.js?worker'
 import { http } from '@/api/http'
-import type { ChunkUploadOptions, ChunkUploadResult, ApiResponse } from '@/types'
+import type { ApiResponse } from '@chat-app/shared'
+import type { ChunkUploadOptions, ChunkUploadResult } from '@/types'
 
 const CHUNK_THRESHOLD = 256 * 1024 // 超过 256KB 才走分片
 

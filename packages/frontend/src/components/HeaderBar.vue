@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { chatAPI } from '../api/chat'
-import type { ModelInfo, UserInfo } from '../types'
+import type { ModelInfo, UserInfo } from '@chat-app/shared'
 
 defineProps<{
   isLoggedIn: boolean

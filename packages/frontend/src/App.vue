@@ -29,7 +29,7 @@ import Sidebar from './components/Sidebar.vue'
 import ChatArea from './components/ChatArea.vue'
 const AuthModal = defineAsyncComponent(() => import('./components/AuthModal.vue'))
 import { chatAPI } from './api/chat'
-import type { UserInfo, ServerMessage, PaginationInfo } from './types'
+import type { UserInfo, ServerMessage, PaginationInfo } from '@chat-app/shared'
 
 // 认证状态
 const showAuthModal = ref(false)

@@ -1,16 +1,13 @@
-// ─── API 层类型 ──────────────────────────────────────────
+// ─── 前端专用类型（共享类型请从 @chat-app/shared 导入）────
 
-export interface UserInfo {
-  id: string
-  username: string
-  nickname: string | null
-  avatar: string | null
-}
+import type { ServerMessage, PaginationInfo } from '@chat-app/shared'
+
+// ─── API 层类型 ──────────────────────────────────────────
 
 export interface AuthTokens {
   token: string
   refreshToken?: string
-  user?: UserInfo
+  user?: import('@chat-app/shared').UserInfo
 }
 
 export interface RequestOptions {
@@ -31,89 +28,6 @@ export interface StreamRequestOptions {
   formData?: FormData
   auth?: boolean
   headers?: Record<string, string>
-}
-
-export interface ApiResponse<T = unknown> {
-  success: boolean
-  data: T
-  error?: string
-}
-
-// ─── 模型相关 ────────────────────────────────────────────
-
-export interface ModelInfo {
-  id: string
-  name: string
-  provider: string
-  icon: string
-  description: string
-  free: boolean
-  supportVision: boolean
-}
-
-// ─── 消息 & 会话 ────────────────────────────────────────
-
-export interface ServerConversation {
-  id: string
-  user_id?: string
-  title?: string
-  last_message?: string
-  created_at?: string
-  updated_at?: string
-}
-
-export interface ServerMessage {
-  id: string
-  content: string
-  created_at: string
-  role: 'user' | 'assistant'
-  images?: ServerImage[]
-}
-
-export interface ServerImage {
-  id?: string
-  url?: string
-  fallback_url?: string
-  storage_type?: string
-  original_name?: string
-  mime_type?: string
-}
-
-export interface PaginationInfo {
-  hasMoreBefore: boolean
-  hasMoreAfter: boolean
-}
-
-export interface PaginatedMessages {
-  messages: ServerMessage[]
-  pagination: PaginationInfo
-}
-
-export interface PaginationOptions {
-  limit?: number
-  before?: string
-  after?: string
-}
-
-export interface SearchOptions {
-  limit?: number
-  offset?: number
-}
-
-export interface SearchResult {
-  id: string
-  conversationId: string
-  conversationTitle?: string
-  content: string
-  role: 'user' | 'assistant'
-  createdAt: string
-}
-
-export interface SearchResponse {
-  messages: SearchResult[]
-  total: number
-  limit: number
-  offset: number
 }
 
 // ─── 流式聊天 ────────────────────────────────────────────

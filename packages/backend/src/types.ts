@@ -1,6 +1,8 @@
 import type { Request } from 'express'
 import type { JwtPayload } from 'jsonwebtoken'
 
+// 共享类型请从 @chat-app/shared 导入（ModelInfo, PaginationOptions, SearchOptions 等）
+
 // ─── 数据库行类型 ────────────────────────────────────────
 
 export interface UserRow {
@@ -75,16 +77,6 @@ export interface SaveImageResult {
   filename: string
 }
 
-export interface ModelInfo {
-  id: string
-  name: string
-  provider: string
-  icon: string
-  description: string
-  free: boolean
-  supportVision: boolean
-}
-
 export interface StreamChatParams {
   conversationId: string
   userId: string
@@ -107,15 +99,4 @@ export interface UploadState {
   totalChunks: number
   receivedChunks: Set<number>
   createdAt: number
-}
-
-export interface PaginationOptions {
-  limit?: number
-  before?: string
-  after?: string
-}
-
-export interface SearchOptions {
-  limit?: number
-  offset?: number
 }

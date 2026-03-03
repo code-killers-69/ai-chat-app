@@ -54,7 +54,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import { chatAPI } from '../api/chat'
-import type { SearchResult } from '../types'
+import type { SearchResult } from '@chat-app/shared'
 
 const props = defineProps<{
   visible: boolean

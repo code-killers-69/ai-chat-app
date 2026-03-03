@@ -12,6 +12,7 @@
     "noEmit": true
   },
   "references": [
+    { "path": "./packages/shared" },
     { "path": "./packages/frontend" },
     { "path": "./packages/backend" },
     { "path": "./packages/vue-lazy-load" }

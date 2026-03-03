@@ -1,4 +1,4 @@
-import type { ServerMessage, ServerImage } from '../types'
+import type { ServerMessage, ServerImage } from '@chat-app/shared'
 
 /**
  * 消息图片模型

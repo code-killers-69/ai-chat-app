@@ -2,7 +2,8 @@
  * 统一请求层 — 拦截器 + 指数退避重试 + Token 无感刷新
  */
 
-import type { UserInfo, AuthTokens, RequestOptions, FormDataRequestOptions, StreamRequestOptions, ApiResponse } from '../types'
+import type { UserInfo, ApiResponse } from '@chat-app/shared'
+import type { AuthTokens, RequestOptions, FormDataRequestOptions, StreamRequestOptions } from '../types'
 
 const API_BASE = '/api'
 

@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import { getPool } from '../config/database'
-import type { ModelInfo, StreamChatParams } from '../types'
+import type { ModelInfo } from '@chat-app/shared'
+import type { StreamChatParams } from '../types'
 
 // 硅基流动 SiliconFlow - 超低价/免费模型
 const client = new OpenAI({

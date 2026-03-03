@@ -5,11 +5,10 @@ import type {
   SearchOptions,
   SearchResponse,
   PaginatedMessages,
-  StreamMessageParams,
-  StreamRequestOptions,
   ModelInfo,
   ServerConversation,
-} from '../types'
+} from '@chat-app/shared'
+import type { StreamMessageParams, StreamRequestOptions } from '../types'
 
 /**
  * 会话 API

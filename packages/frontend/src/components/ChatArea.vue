@@ -29,7 +29,7 @@ import MessageBubble from './MessageBubble.vue'
 import MessageInput from './MessageInput.vue'
 import { chatAPI } from '../api/chat'
 import { Message } from '../models/Message'
-import type { UserInfo, ServerMessage, PaginationInfo, PaginatedMessages } from '../types'
+import type { UserInfo, ServerMessage, PaginationInfo, PaginatedMessages } from '@chat-app/shared'
 
 defineProps<{
     isLoggedIn: boolean

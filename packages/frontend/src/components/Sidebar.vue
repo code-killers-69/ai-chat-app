@@ -62,7 +62,8 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 import { chatAPI } from '../api/chat'
 import { Conversation } from '../models/Conversation'
 import SearchPanel from './SearchPanel.vue'
-import type { ServerMessage, PaginationInfo, MessagesCacheEntry, PaginatedMessages } from '../types'
+import type { ServerMessage, PaginationInfo, PaginatedMessages } from '@chat-app/shared'
+import type { MessagesCacheEntry } from '../types'
 
 const props = defineProps<{
   isLoggedIn: boolean
