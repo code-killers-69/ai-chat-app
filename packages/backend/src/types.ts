@@ -94,6 +94,7 @@ export interface StreamBufferEntry {
 }
 
 export interface UploadState {
+  userId: string
   filename: string
   mimeType: string
   totalChunks: number

@@ -59,6 +59,7 @@ export async function initUpload(req: AuthRequest, res: Response): Promise<void>
 
   const uploadId = uuidv4()
   uploads.set(uploadId, {
+    userId: req.user!.userId,
     filename,
     mimeType: mimeType || 'image/jpeg',
     totalChunks,
@@ -75,6 +76,20 @@ export async function initUpload(req: AuthRequest, res: Response): Promise<void>
   })
 }
 
+/** 校验上传会话归属 */
+function verifyUploadOwner(uploadId: string, userId: string, res: Response): UploadState | null {
+  const state = uploads.get(uploadId)
+  if (!state) {
+    res.status(404).json({ success: false, error: '上传会话不存在或已过期' })
+    return null
+  }
+  if (state.userId !== userId) {
+    res.status(403).json({ success: false, error: '无权操作此上传会话' })
+    return null
+  }
+  return state
+}
+
 /**
  * 上传单个分片
  */
@@ -88,11 +103,8 @@ export async function uploadChunk(req: AuthRequest, res: Response): Promise<void
     return
   }
 
-  const state = uploads.get(uploadId)
-  if (!state) {
-    res.status(404).json({ success: false, error: '上传会话不存在或已过期' })
-    return
-  }
+  const state = verifyUploadOwner(uploadId, req.user!.userId, res)
+  if (!state) return
 
   if (chunkIndex < 0 || chunkIndex >= state.totalChunks) {
     res.status(400).json({ success: false, error: '分片索引越界' })
@@ -123,12 +135,8 @@ export async function uploadChunk(req: AuthRequest, res: Response): Promise<void
  */
 export async function completeUpload(req: AuthRequest, res: Response): Promise<void> {
   const { uploadId } = req.body
-  const state = uploads.get(uploadId)
-
-  if (!state) {
-    res.status(404).json({ success: false, error: '上传会话不存在或已过期' })
-    return
-  }
+  const state = verifyUploadOwner(uploadId, req.user!.userId, res)
+  if (!state) return
 
   if (state.receivedChunks.size < state.totalChunks) {
     res.status(400).json({
@@ -163,9 +171,10 @@ export async function completeUpload(req: AuthRequest, res: Response): Promise<v
  * 查询上传进度
  */
 export async function getProgress(req: AuthRequest, res: Response): Promise<void> {
-  const state = uploads.get(req.params.uploadId as string)
+  const uploadId = req.params.uploadId as string
+  const state = uploads.get(uploadId)
 
-  if (!state) {
+  if (!state || state.userId !== req.user!.userId) {
     res.json({
       success: true,
       data: { exists: false },
