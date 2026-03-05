@@ -64,7 +64,7 @@
   <div class="container">
     <header>
       <h1>Chat App API 文档</h1>
-      <p>AI 聊天应用后端接口文档 &mdash; 共 16 个端点</p>
+      <p>AI 聊天应用后端接口文档 &mdash; 共 22 个端点</p>
     </header>
     
     <div class="base-url">
@@ -81,12 +81,14 @@
           <li><a href="#auth">认证说明</a></li>
           <li><a href="#user-register"><span class="method-tag post">POST</span> 用户注册</a></li>
           <li><a href="#user-login"><span class="method-tag post">POST</span> 用户登录</a></li>
+          <li><a href="#user-refresh"><span class="method-tag post">POST</span> 刷新 Token</a></li>
           <li><a href="#user-me"><span class="method-tag get">GET</span> 获取用户信息</a></li>
         </ul>
       </div>
       <div class="toc-group">
         <div class="toc-group-title">会话管理</div>
         <ul>
+          <li><a href="#conv-search"><span class="method-tag get">GET</span> 全文搜索消息</a></li>
           <li><a href="#conv-list"><span class="method-tag get">GET</span> 会话列表</a></li>
           <li><a href="#conv-create"><span class="method-tag post">POST</span> 创建会话</a></li>
           <li><a href="#conv-info"><span class="method-tag get">GET</span> 会话元信息</a></li>
@@ -103,7 +105,17 @@
           <li><a href="#chat-stream"><span class="method-tag post">POST</span> 流式聊天（SSE）</a></li>
           <li><a href="#chat-message"><span class="method-tag post">POST</span> 普通聊天</a></li>
           <li><a href="#chat-fallbacks"><span class="method-tag post">POST</span> 上传兜底图</a></li>
+          <li><a href="#chat-health"><span class="method-tag get">GET</span> 聊天服务健康检查</a></li>
           <li><a href="#health"><span class="method-tag get">GET</span> 健康检查</a></li>
+        </ul>
+      </div>
+      <div class="toc-group">
+        <div class="toc-group-title">分片上传</div>
+        <ul>
+          <li><a href="#upload-init"><span class="method-tag post">POST</span> 初始化分片上传</a></li>
+          <li><a href="#upload-chunk"><span class="method-tag post">POST</span> 上传分片</a></li>
+          <li><a href="#upload-complete"><span class="method-tag post">POST</span> 合并分片</a></li>
+          <li><a href="#upload-progress"><span class="method-tag get">GET</span> 查询上传进度</a></li>
         </ul>
       </div>
     </div>
@@ -112,23 +124,30 @@
     <div class="section" id="auth">
       <div class="section-header"><h2>认证说明</h2></div>
       <div class="api-item">
-        <div class="api-desc">使用 <strong>JWT (JSON Web Token)</strong> 认证。登录后获取 token，后续请求在 Header 中携带。</div>
+        <div class="api-desc">使用 <strong>JWT 双 Token 机制</strong> 认证。登录后同时获取 access token（2 小时有效）和 refresh token（7 天有效）。</div>
         
         <h4>请求头格式</h4>
         <span class="code-label">HTTP Header</span>
         <pre>Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</pre>
         
+        <h4>Token 类型</h4>
+        <table class="param-table">
+          <tr><th>类型</th><th>用途</th><th>有效期</th><th>说明</th></tr>
+          <tr><td>Access Token</td><td>API 请求认证</td><td>2 小时</td><td>放在 Authorization 头中携带</td></tr>
+          <tr><td>Refresh Token</td><td>刷新 access token</td><td>7 天</td><td>access token 过期后用于换取新 token 对</td></tr>
+        </table>
+        
         <h4>三种认证级别</h4>
         <table class="param-table">
           <tr><th>标识</th><th>含义</th><th>缺少 token 时</th></tr>
-          <tr><td><span class="auth-required">需要登录</span></td><td>必须携带有效 token</td><td>返回 401</td></tr>
+          <tr><td><span class="auth-required">需要登录</span></td><td>必须携带有效 access token</td><td>返回 401</td></tr>
           <tr><td><span class="auth-optional">可选登录</span></td><td>有 token 则解析用户，无 token 也放行</td><td>以匿名身份访问（消息不持久化）</td></tr>
           <tr><td><span class="auth-none">无需登录</span></td><td>不检查 token</td><td>正常访问</td></tr>
         </table>
         
         <div class="tip">
-          <div class="tip-title">Token 有效期</div>
-          7 天。过期后需重新登录。
+          <div class="tip-title">Token 无感刷新</div>
+          前端收到 401 时自动用 refresh token 换取新 token 对并重放请求，多个并发 401 只触发一次刷新。
         </div>
       </div>
     </div>
@@ -191,7 +210,7 @@ const data = await res.json();</pre>
           <span class="endpoint">/api/user/login</span>
           <span class="auth-badge auth-none">无需登录</span>
         </div>
-        <div class="api-desc">用户登录，返回 token 和用户信息。</div>
+        <div class="api-desc">用户登录，返回 access token、refresh token 和用户信息。</div>
         
         <h4>请求参数 (Body - JSON)</h4>
         <table class="param-table">
@@ -206,10 +225,12 @@ const data = await res.json();</pre>
   "success": true,
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user": {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "username": "zhangsan",
-      "nickname": "张三"
+      "nickname": "张三",
+      "avatar": ""
     }
   }
 }</pre>
@@ -223,8 +244,51 @@ const data = await res.json();</pre>
         
         <div class="warning">
           <div class="warning-title">重要</div>
-          请将 token 保存到 localStorage，后续所有需要登录的接口都要用到。
+          请将 token 和 refreshToken 分别保存到 localStorage。access token 用于 API 请求认证，refresh token 用于在 access token 过期时换取新 token 对。
         </div>
+      </div>
+      
+      <!-- 刷新 Token -->
+      <div class="api-item" id="user-refresh">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/user/refresh</span>
+          <span class="auth-badge auth-none">无需登录</span>
+        </div>
+        <div class="api-desc">使用 refresh token 换取新的 token 对（access token + refresh token）。用于实现 token 无感刷新，旋转刷新策略（每次返回新的 refresh token）。</div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>refreshToken</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>登录时获取的 refresh token</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript</span>
+<pre>const res = await fetch('/api/user/refresh', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ refreshToken: localStorage.getItem('refreshToken') })
+});
+const data = await res.json();
+localStorage.setItem('token', data.data.token);
+localStorage.setItem('refreshToken', data.data.refreshToken);</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...(新 access token)",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...(新 refresh token)"
+  }
+}</pre>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>401</td><td>refreshToken 无效或已过期</td><td>token 无效、已过期或类型不匹配</td></tr>
+        </table>
       </div>
       
       <!-- 获取用户信息 -->
@@ -244,6 +308,7 @@ const data = await res.json();</pre>
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "username": "zhangsan",
     "nickname": "张三",
+    "avatar": "",
     "created_at": "2024-01-15T08:30:00.000Z"
   }
 }</pre>
@@ -253,6 +318,67 @@ const data = await res.json();</pre>
     <!-- ==================== 会话相关 ==================== -->
     <div class="section">
       <div class="section-header"><h2>会话相关接口</h2></div>
+      
+      <!-- 全文搜索消息 -->
+      <div class="api-item" id="conv-search">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/conversations/search</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">全文搜索当前用户所有会话中的消息。使用 MySQL FULLTEXT 索引 + ngram 分词器，支持中文搜索。</div>
+        
+        <h4>Query 参数</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>q</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>搜索关键词</td></tr>
+          <tr><td>limit</td><td><span class="type">number</span></td><td><span class="optional">否</span></td><td>返回数量，默认 20，最大 50</td></tr>
+          <tr><td>offset</td><td><span class="type">number</span></td><td><span class="optional">否</span></td><td>偏移量，默认 0，用于分页</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript</span>
+<pre>const res = await fetch('/api/conversations/search?q=Vue3&limit=10', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "msg-uuid-1",
+        "conversationId": "conv-uuid-1",
+        "conversationTitle": "关于 Vue3 的问题",
+        "role": "assistant",
+        "content": "Vue3 相比 Vue2 有很多改进...",
+        "createdAt": "2024-01-15T10:00:00.000Z",
+        "relevance": 1.5
+      }
+    ],
+    "total": 42,
+    "limit": 10,
+    "offset": 0
+  }
+}</pre>
+        
+        <h4>响应字段说明</h4>
+        <table class="param-table">
+          <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+          <tr><td>messages[].conversationId</td><td><span class="type">string</span></td><td>所属会话 ID，可跳转到该会话</td></tr>
+          <tr><td>messages[].conversationTitle</td><td><span class="type">string</span></td><td>所属会话标题</td></tr>
+          <tr><td>messages[].relevance</td><td><span class="type">number</span></td><td>相关度分数（越高越相关），按此降序排列</td></tr>
+          <tr><td>total</td><td><span class="type">number</span></td><td>匹配的消息总数</td></tr>
+        </table>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>400</td><td>搜索关键词不能为空</td><td>未传 q 参数</td></tr>
+        </table>
+      </div>
       
       <!-- 获取会话列表 -->
       <div class="api-item" id="conv-list">
@@ -615,7 +741,7 @@ const data = await res.json();</pre>
           <span class="endpoint">/api/chat/stream</span>
           <span class="auth-badge auth-optional">可选登录</span>
         </div>
-        <div class="api-desc"><strong>推荐使用。</strong>流式聊天接口，AI 回复通过 SSE (Server-Sent Events) 逐字返回。支持纯文本和带图片两种请求方式。</div>
+        <div class="api-desc"><strong>推荐使用。</strong>流式聊天接口，AI 回复通过 SSE (Server-Sent Events) 逐字返回。支持纯文本和带图片两种请求方式。支持 <code>Last-Event-ID</code> 断线重连。</div>
         
         <h4>请求方式一：纯文本（JSON）</h4>
         <table class="param-table">
@@ -705,10 +831,19 @@ const res = await fetch('/api/chat/stream', {
           <strong>model 参数：</strong>可选，不传时默认使用免费的 Qwen2.5-7B 模型。当同时上传了图片但所选模型不支持视觉时，会自动切换到视觉模型（Qwen2-VL-72B）。
         </div>
         
+        <h4>断线重连</h4>
+        <p style="margin-bottom: 10px; color: #666;">支持 SSE 标准断线重连。请求时携带 <code>Last-Event-ID</code> 头（值为最后收到的事件 ID，格式 <code>{streamId}:{seq}</code>），后端会跳过已发送的事件继续推送。</p>
+        
         <h4>SSE 响应事件流</h4>
-        <p style="margin-bottom: 10px; color: #666;">响应为 SSE 格式，每个事件为 <code>data: {JSON}\n\n</code>，按以下顺序返回：</p>
+        <p style="margin-bottom: 10px; color: #666;">响应为 SSE 格式，每个事件带有递增 ID（格式 <code>id: {streamId}:{seq}</code>），按以下顺序返回：</p>
         <table class="param-table">
           <tr><th>事件 type</th><th>触发时机</th><th>数据字段</th><th>说明</th></tr>
+          <tr>
+            <td><code>stream-id</code></td>
+            <td>连接建立时（首个事件）</td>
+            <td>streamId</td>
+            <td>本次流的唯一标识，用于断线重连</td>
+          </tr>
           <tr>
             <td><code>conversation</code></td>
             <td>新会话创建时（仅首次，仅登录用户）</td>
@@ -737,14 +872,22 @@ const res = await fetch('/api/chat/stream', {
         
         <h4>原始响应示例</h4>
         <span class="code-label">SSE 数据流</span>
-<pre>data: {"type":"conversation","conversationId":"550e8400-e29b-41d4-a716-446655440000"}
+<pre>id: abc123:1
+data: {"type":"stream-id","streamId":"abc123"}
 
+id: abc123:2
+data: {"type":"conversation","conversationId":"550e8400-e29b-41d4-a716-446655440000"}
+
+id: abc123:3
 data: {"type":"chunk","content":"你"}
 
+id: abc123:4
 data: {"type":"chunk","content":"好"}
 
+id: abc123:5
 data: {"type":"chunk","content":"！有什么可以帮助你的吗？"}
 
+id: abc123:6
 data: {"type":"done","content":"你好！有什么可以帮助你的吗？","imageIds":["img-uuid-1","img-uuid-2"]}
 </pre>
         
@@ -763,10 +906,12 @@ while (true) {
   buffer = parts.pop() || '';
 
   for (const part of parts) {
-    if (!part.startsWith('data: ')) continue;
-    const data = JSON.parse(part.slice(6));
+    const dataLine = part.split('\n').find(line => line.startsWith('data: '));
+    if (!dataLine) continue;
+    const data = JSON.parse(dataLine.slice(6));
 
     switch (data.type) {
+      case 'stream-id':   /* 保存 data.streamId 用于断线重连 */ break;
       case 'conversation': /* 保存 data.conversationId */ break;
       case 'chunk':        /* 追加 data.content 到界面 */ break;
       case 'done':         /* 回复完成 */ break;
@@ -862,6 +1007,211 @@ await fetch('/api/chat/upload-fallbacks', {
           此接口由前端在收到聊天接口的 <code>done</code> 事件后<strong>异步后台调用</strong>，不阻塞用户操作。即使上传失败也不影响主图显示，仅影响兜底能力。
         </div>
       </div>
+      
+      <!-- 聊天服务健康检查 -->
+      <div class="api-item" id="chat-health">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/chat/health</span>
+          <span class="auth-badge auth-none">无需登录</span>
+        </div>
+        <div class="api-desc">聊天服务专属健康检查，用于监控 AI 聊天功能是否正常运行。</div>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{ "status": "ok" }</pre>
+      </div>
+    </div>
+    
+    <!-- ==================== 分片上传 ==================== -->
+    <div class="section">
+      <div class="section-header"><h2>分片上传接口</h2></div>
+      
+      <div class="api-item" style="border-bottom: 1px solid #eee; padding-bottom: 15px;">
+        <div class="api-desc">支持大文件分片上传，适用于网络不稳定或文件较大的场景。流程：初始化 → 逐片上传 → 合并完成。支持断点续传（可查询已上传分片后跳过）。上传会话有 30 分钟 TTL，超时自动清理。</div>
+        
+        <h4>完整上传流程</h4>
+        <span class="code-label">流程</span>
+<pre>1. POST /api/upload/init       → 获取 uploadId
+2. POST /api/upload/chunk (×N)  → 逐片上传（可并发）
+3. POST /api/upload/complete    → 合并所有分片，返回文件 URL
+   （可选）GET /api/upload/progress/:uploadId → 查询已上传分片（用于断点续传）</pre>
+      </div>
+      
+      <!-- 初始化分片上传 -->
+      <div class="api-item" id="upload-init">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/upload/init</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">初始化一次分片上传会话，返回 uploadId 用于后续分片上传。</div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>filename</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>原始文件名</td></tr>
+          <tr><td>mimeType</td><td><span class="type">string</span></td><td><span class="optional">否</span></td><td>MIME 类型，如 <code>image/jpeg</code></td></tr>
+          <tr><td>totalChunks</td><td><span class="type">number</span></td><td><span class="required">是</span></td><td>总分片数，最小 1</td></tr>
+          <tr><td>fileSize</td><td><span class="type">number</span></td><td><span class="optional">否</span></td><td>文件总大小（字节），最大 50MB</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript</span>
+<pre>const res = await fetch('/api/upload/init', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    filename: 'photo.jpg',
+    mimeType: 'image/jpeg',
+    totalChunks: 5,
+    fileSize: 4194304
+  })
+});
+const { data } = await res.json();
+const uploadId = data.uploadId;</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "uploadId": "550e8400-e29b-41d4-a716-446655440000",
+    "receivedChunks": []
+  }
+}</pre>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>400</td><td>缺少 filename 或 totalChunks</td><td>必要参数缺失</td></tr>
+          <tr><td>400</td><td>文件大小超过限制（50MB）</td><td>fileSize 超出 50MB</td></tr>
+        </table>
+      </div>
+      
+      <!-- 上传分片 -->
+      <div class="api-item" id="upload-chunk">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/upload/chunk</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">上传单个文件分片。支持乱序上传和重复上传（幂等），已上传的分片会被跳过。</div>
+        
+        <h4>请求参数 (Body - multipart/form-data)</h4>
+        <table class="param-table">
+          <tr><th>字段名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>uploadId</td><td><span class="type">text</span></td><td><span class="required">是</span></td><td>初始化时返回的 uploadId</td></tr>
+          <tr><td>chunkIndex</td><td><span class="type">text</span></td><td><span class="required">是</span></td><td>分片索引，从 0 开始</td></tr>
+          <tr><td>chunk</td><td><span class="type">file</span></td><td><span class="required">是</span></td><td>分片文件数据，单片最大 1MB</td></tr>
+        </table>
+        
+        <h4>请求示例</h4>
+        <span class="code-label">JavaScript</span>
+<pre>const CHUNK_SIZE = 1024 * 1024; // 1MB
+const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+for (let i = 0; i < totalChunks; i++) {
+  const chunk = file.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+  const formData = new FormData();
+  formData.append('uploadId', uploadId);
+  formData.append('chunkIndex', String(i));
+  formData.append('chunk', chunk);
+
+  await fetch('/api/upload/chunk', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData
+  });
+}</pre>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON — 正常上传</span>
+<pre>{
+  "success": true,
+  "data": { "chunkIndex": 0, "received": 3, "total": 5 }
+}</pre>
+        <span class="code-label">JSON — 重复分片（幂等）</span>
+<pre>{
+  "success": true,
+  "data": { "chunkIndex": 0, "duplicate": true }
+}</pre>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>400</td><td>缺少必要参数</td><td>uploadId / chunkIndex / chunk 缺失</td></tr>
+          <tr><td>404</td><td>上传会话不存在或已过期</td><td>uploadId 无效或超过 30 分钟 TTL</td></tr>
+        </table>
+      </div>
+      
+      <!-- 合并分片 -->
+      <div class="api-item" id="upload-complete">
+        <div class="api-title">
+          <span class="method post">POST</span>
+          <span class="endpoint">/api/upload/complete</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">所有分片上传完成后调用，合并分片为完整文件并返回文件 URL。</div>
+        
+        <h4>请求参数 (Body - JSON)</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>必填</th><th>说明</th></tr>
+          <tr><td>uploadId</td><td><span class="type">string</span></td><td><span class="required">是</span></td><td>初始化时返回的 uploadId</td></tr>
+        </table>
+        
+        <h4>成功响应</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": {
+    "url": "http://scj.dolmo.top:3001/uploads/550e8400.jpg",
+    "storageType": "local",
+    "size": 4194304,
+    "filename": "550e8400.jpg"
+  }
+}</pre>
+        
+        <h4>错误响应</h4>
+        <table class="param-table">
+          <tr><th>HTTP 状态码</th><th>error</th><th>原因</th></tr>
+          <tr><td>400</td><td>分片不完整</td><td>尚有分片未上传</td></tr>
+          <tr><td>404</td><td>上传会话不存在或已过期</td><td>uploadId 无效或超过 TTL</td></tr>
+        </table>
+      </div>
+      
+      <!-- 查询上传进度 -->
+      <div class="api-item" id="upload-progress">
+        <div class="api-title">
+          <span class="method get">GET</span>
+          <span class="endpoint">/api/upload/progress/:uploadId</span>
+          <span class="auth-badge auth-required">需要登录</span>
+        </div>
+        <div class="api-desc">查询分片上传进度，用于断点续传时获取已上传的分片列表，跳过已上传分片。</div>
+        
+        <h4>路径参数</h4>
+        <table class="param-table">
+          <tr><th>参数名</th><th>类型</th><th>说明</th></tr>
+          <tr><td>uploadId</td><td><span class="type">string</span></td><td>初始化时返回的 uploadId</td></tr>
+        </table>
+        
+        <h4>成功响应 — 会话存在</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": { "exists": true, "totalChunks": 10, "receivedChunks": [0, 1, 2, 3] }
+}</pre>
+        
+        <h4>成功响应 — 会话不存在</h4>
+        <span class="code-label">JSON</span>
+<pre>{
+  "success": true,
+  "data": { "exists": false }
+}</pre>
+      </div>
     </div>
     
     <!-- ==================== 系统接口 ==================== -->
@@ -883,11 +1233,6 @@ await fetch('/api/chat/upload-fallbacks', {
   "status": "ok",
   "timestamp": "2024-01-15T10:00:00.000Z"
 }</pre>
-        
-        <div class="tip">
-          <div class="tip-title">另有聊天服务专属健康检查</div>
-          <code>GET /api/chat/health</code> 返回 <code>{ "status": "ok" }</code>
-        </div>
       </div>
     </div>
     
@@ -1025,7 +1370,7 @@ await fetch('/api/chat/upload-fallbacks', {
     </div>
     
     <footer>
-      <p>Chat App API 文档 | 共 16 个端点 | 最后更新：2026-02-27</p>
+      <p>Chat App API 文档 | 共 22 个端点 | 最后更新：2026-03-03</p>
     </footer>
   </div>
 </body>
