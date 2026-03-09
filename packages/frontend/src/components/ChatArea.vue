@@ -56,6 +56,25 @@ const currentConversationId = ref<string | null>(null)
 // 初始化期间禁止触发加载历史消息（scrollTop 为 0 会误触发）
 let isInitializing = false
 
+/**
+ * 解除初始化保护：监听 scrollend 事件确认滚动真正完成，
+ * 同时 300ms setTimeout 兜底（防止浏览器不支持 scrollend 或无滚动触发）
+ */
+function finishInitializing() {
+    if (!isInitializing) return
+    let settled = false
+    const done = () => {
+        if (settled) return
+        settled = true
+        isInitializing = false
+        scrollArea.value?.removeEventListener('scrollend', done)
+    }
+    // 优先：scrollend 事件驱动，滚动真正停止后才解除
+    scrollArea.value?.addEventListener('scrollend', done, { once: true })
+    // 兜底：浏览器不支持 scrollend / 容器无需滚动时 300ms 后解除
+    setTimeout(done, 300)
+}
+
 // ========== 滚动工具 ==========
 function isNearBottom(threshold = 150) {
     if (!scrollArea.value) return true
@@ -235,9 +254,7 @@ const initMessages = async (convId: string): Promise<PaginatedMessages | null> =
 
         await nextTick()
         scrollToBottom('instant')
-
-        // scrollToBottom 的兜底 setTimeout 是 100ms，等它完成后再解除保护
-        setTimeout(() => { isInitializing = false }, 150)
+        finishInitializing()
 
         return result
     } catch (e) {
@@ -260,7 +277,7 @@ const loadFromCache = (msgList: ServerMessage[], pagination: Partial<PaginationI
 
     nextTick(() => {
         scrollToBottom('instant')
-        setTimeout(() => { isInitializing = false }, 150)
+        finishInitializing()
     })
 }
 
