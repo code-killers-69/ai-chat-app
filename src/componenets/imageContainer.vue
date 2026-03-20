@@ -1,18 +1,22 @@
 <template>
     <div :class="{ haveLoadingAnimation: enableLoadingGif }" :style="{ '--size': size + 'px' }">
-        <div class="loadingAnimation" v-if="enableLoadingGif && !isLoaded"> <!--  删掉！ -->
+        <div class="loadingAnimation" v-if="enableLoadingGif && !isLoaded">
             <img src="/gif/loading.gif" alt="loading">
         </div>
-        <img class='imageBlock noLoading' :src="imageUrl" @load="onLoaded">
+        <div class="imageBlock">
+            <img class='noLoading' :src="imageUrl.webpUrl" @load="onLoaded" v-lazy="imageUrl.webpUrl">
+        </div>
     </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import { useImageUpload } from "@/composables/useImageUpload";
 
+const { isCompressing } = useImageUpload()
 const props = defineProps({
     imageUrl: {
-        type: String,
+        type: Object,
         required: true
     },
     enableLoadingGif: {
@@ -24,11 +28,10 @@ const props = defineProps({
         default: 80
     }
 })
-const emit = defineEmits(['onImageLoaded'])
 const isLoaded = ref(false)
 const onLoaded = () => {
     isLoaded.value = true;
-    emit('onImageLoaded')
+    console.log(isLoaded.value);
 }
 </script>
 
@@ -39,25 +42,32 @@ const onLoaded = () => {
     max-width: 200px;
     min-width: 120px;
     overflow: scroll;
+    width: var(--size);
+    height: var(--size);
     scrollbar-width: none;
 }
 
 .loadingAnimation {
-    position: relative;
+    position: absolute;
     margin: 0 2px;
     border-radius: 5px;
+    width: var(--size);
+    height: var(--size);
 }
 
 .loadingAnimation img {
-    min-width: var(--size);
-    height: var(--size);
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     margin: 0 auto;
-    border-radius: 5px
+    border-radius: 5px;
+
 }
 
 .noLoading {
+    object-fit: cover;
     max-width: var(--size);
-    margin: 5px 0;
     border-radius: 10px;
 }
 
