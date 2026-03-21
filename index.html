@@ -6,15 +6,159 @@
     <link rel="icon" href="/favicon.jpg  " />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chatt!</title>
+    <style>
+      html, body {
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      /* 骨架屏基础样式 */
+      #skeleton-wrapper {
+        display: flex;
+        width: 100%;
+        height: 100vh;
+        position: relative;
+        background-color: #fff;
+        z-index: 9999;
+      }
+
+      /* 动画效果 */
+      @keyframes skeleton-pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 0.3; }
+        100% { opacity: 0.6; }
+      }
+      
+      .skeleton-block {
+        background-color: #e0e0e0;
+        border-radius: 4px;
+        animation: skeleton-pulse 1.5s ease-in-out infinite;
+      }
+
+      /* 侧边栏骨架 */
+      .sk-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 200px;
+        height: 100%;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .sk-btn-new {
+        width: 100px;
+        height: 30px;
+      }
+      .sk-convo-item {
+        width: 100%;
+        height: 24px;
+      }
+
+      /* 主体聊天窗口骨架 */
+      .sk-main {
+        width: 800px;
+        height: 100%;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      /* 头部 */
+      .sk-header {
+        height: 60px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .sk-header-title {
+        width: 100px;
+        height: 20px;
+      }
+      .sk-header-left {
+        position: absolute;
+        left: 20px;
+        top: 20px;
+        width: 100px;
+        height: 20px;
+      }
+      .sk-header-right {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        width: 60px;
+        height: 20px;
+      }
+
+      /* 消息区域 */
+      .sk-messages {
+        flex: 1;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .sk-msg {
+        height: 40px;
+        width: 60%;
+        border-radius: 10px;
+      }
+      .sk-msg-left {
+        align-self: flex-start;
+      }
+      .sk-msg-right {
+        align-self: flex-end;
+      }
+
+      /* 底部输入框 */
+      .sk-footer {
+        height: 80px; /* text-area height approx */
+        width: 80%;
+        margin: 0 auto 40px auto;
+        border-radius: 15px;
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- 骨架屏结构：Vue 挂载后会自动覆盖这里的内容 -->
+      <div id="skeleton-wrapper">
+        <!-- 侧边栏 -->
+        <div class="sk-sidebar">
+          <div class="skeleton-block sk-btn-new"></div>
+          <div class="skeleton-block sk-convo-item"></div>
+          <div class="skeleton-block sk-convo-item"></div>
+          <div class="skeleton-block sk-convo-item"></div>
+        </div>
+        
+        <!-- 主体区域 -->
+        <div class="sk-main">
+          <!-- 头部 -->
+          <div class="sk-header">
+            <div class="skeleton-block sk-header-left"></div>
+            <div class="skeleton-block sk-header-title"></div>
+            <div class="skeleton-block sk-header-right"></div>
+          </div>
+          
+          <!-- 消息列表模拟 -->
+          <div class="sk-messages">
+            <div class="skeleton-block sk-msg sk-msg-left"></div>
+            <div class="skeleton-block sk-msg sk-msg-right"></div>
+            <div class="skeleton-block sk-msg sk-msg-left"></div>
+          </div>
+
+          <!-- 底部输入框 -->
+          <div class="skeleton-block sk-footer"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
-  <style>
-    html body{
-      padding: 0;
-      margin: 0;
-    }
-  </style>
 </html>
