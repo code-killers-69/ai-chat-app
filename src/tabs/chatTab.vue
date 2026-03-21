@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch, onMounted } from 'vue';
+import { ref, nextTick, watch, onMounted, triggerRef } from 'vue';
 import ImageContainer from '@/componenets/imageContainer.vue';
 import userLogin from '@/componenets/userLogin.vue';
 import ModelSwitch from '@/componenets/modelSwitch.vue';
@@ -106,6 +106,7 @@ watch(messages, async () => {
     //  锚定
     if (scrollAreaRef.value.scrollHeight > oldScrollHeight.value) {
         requestAnimationFrame(() => {
+            
             const newSrollHeight = scrollAreaRef.value.scrollHeight
             const scrollTop = scrollAreaRef.value.scrollTop
             scrollAreaRef.value.scrollTop = newSrollHeight - oldScrollHeight.value + scrollTop
@@ -161,6 +162,7 @@ const handleMsgEnter = async (event) => {
             })
 
         //  处理返回的字段，异步生成器保证字段以标准格式返回，由异步迭代器接受拼接
+        let rafId = null;
         for await (const data of getChunkComplete(response)) {
 
             switch (data.type) {
@@ -175,8 +177,20 @@ const handleMsgEnter = async (event) => {
                     };
                     break;
                 case "chunk":
-                    assistantMsg.content.value += data.content
-                    scrollToFloor()
+                    // 1. 静默修改：绕过 Vue 响应式追踪
+                    assistantMsg.contentObj.value.text += data.content;
+                    
+                    // 2. 帧节流：如果当前帧还没有安排更新任务，则安排一次
+                    if (!rafId) {
+                        rafId = requestAnimationFrame(() => {
+                            // 3. 手动通知 Vue 派发更新
+                            triggerRef(assistantMsg.contentObj);
+                            // 4. 将消耗性能的布局读取放到帧绘制前统一执行
+                            scrollToFloor();
+                            // 5. 任务执行完毕，释放锁
+                            rafId = null;
+                        });
+                    }
                     break;
                 case "done":
                     console.log('回复完成')
@@ -188,7 +202,8 @@ const handleMsgEnter = async (event) => {
         }
     } catch (error) {
         console.error('字段拼接异常：', error);
-        assistantMsg.content.value = "消息生成异常"
+        assistantMsg.contentObj.value.text = "消息生成异常"
+        triggerRef(assistantMsg.contentObj);
     }
     finally {
         imageBase64s.length = 0 //  响应式数组置空

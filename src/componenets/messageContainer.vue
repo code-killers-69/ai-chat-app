@@ -5,7 +5,7 @@
     }">
         <div class="article-area">
             <Transition>
-                <p id="streamer">{{ message.content }}</p>
+                <p id="streamer">{{ message.contentObj.text }}</p>
             </Transition>
             <!-- 光标跳动 -->
             <!-- <div v-show="index == messages.length - 1"></div> -->
