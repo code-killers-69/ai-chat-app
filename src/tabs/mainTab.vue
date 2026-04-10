@@ -110,7 +110,11 @@ const sendMessageIn = async (event) => {
   //  处理上传包
   const formData = new FormData();
   formData.append('message', newMessageContent);
-  formData.append('conversationId', conversationIdRef.value);
+  if (conversationIdRef.value) {
+    formData.append('conversationId', conversationIdRef.value);
+  } else {
+    formData.append('conversationId', '')
+  }
   for (const item of imageMultipart.value) {
     // 这里因为从worker拿到的是blob，为了能够正常上传，我们需要给它一个名字
     formData.append('images', item, 'image.webp');
