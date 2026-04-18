@@ -43,7 +43,7 @@ const choseConvoHandler = async (conversation) => {
             message['content'],
             message['created_at'],
             message['role'],
-            message['images'].map((image) => image.url)))
+            message['images'].map((image) => ({ webpUrl: image.url, fallbacks: image.fallbackUrl }))))
     }
     //  message常规请求 ！后置避免空赋值！
     messages.value = conversation.messages
@@ -76,7 +76,7 @@ watch(fetchCount, async () => {
 //  新建convo:
 const handleConvoCreate = () => {
     //  新建本地会话成员 id给默认值用来处理高亮，不然每个新对话都是null==null，都亮起来吧
-    conversations.value.push(new Conversation(conversations.value.length, `newConvo${conversations.value.length + 1}`))
+    conversations.value.push(new Conversation(null, `newConvo${conversations.value.length + 1}`))
     //自动跳转到新convo
     const index = conversations.value.length - 1
     choseConvoHandler(conversations.value[index], index)

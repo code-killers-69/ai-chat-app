@@ -48,6 +48,18 @@ import { useModelStore } from '@/states/useModelStore';
 import { useConvoStore } from '@/states/conversation';
 import { useMessageStore, Message } from '@/states/message';
 
+import { imageHandler } from '@/composable/imageHandler';
+import { handleFallBacks } from '@/utils/upLoadFallBacks';
+
+const {
+    isCompressing,
+    imageUrls,
+    imageMultipart,
+    fallBackBlobs,
+    generatePreviewAndUpload,
+    clearImages
+} = imageHandler()
+
 const userStore = useUserStore()
 const messageStore = useMessageStore()
 const modelStore = useModelStore()
@@ -131,18 +143,33 @@ watch(conversationIdRef, async () => {
 const messageEntered = ref('')
 const handleMsgEnter = async (event) => {
     if (event.key !== 'Enter' || messageEntered.value === '') return;
+    //  最好做一个UI同步状态
+    if (isCompressing.value) {
+        console.log('图片正在压缩...');
+        return
+    }
     //  获取逻辑变量
     const newMessageEntered = messageEntered.value;
     const assistantMsg = new Message('', getDate(), 'assistant')
 
     //  重置状态 处理UI变化
-    messages.value.push(new Message(messageEntered.value, getDate(), 'user', imageUrls.value))
+    messages.value.push(new Message(messageEntered.value, getDate(), 'user', [...imageUrls.value]))
     messageEntered.value = ''
-    imageUrls.value = [];
     scrollToFloor();
 
     //  UI占位 通过对象引用
     messages.value.push(assistantMsg)
+
+    //  处理单次信息
+    const formData = new FormData()
+    formData.append('message', newMessageEntered)
+    formData.append('conversationId', conversationIdRef.value ? conversationIdRef.value : '')
+    formData.append('model', modelIdChosen.value)
+    for (const image of imageMultipart.value) {
+        formData.append('images', image)
+    }
+
+    clearImages()
 
     //  流式传输
     try {
@@ -153,10 +180,9 @@ const handleMsgEnter = async (event) => {
             {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     ...(token.value ? { 'Authorization': `Bearer ${token.value}` } : {})
                 },
-                body: { message: newMessageEntered, conversationId: conversationIdRef.value, model: modelIdChosen.value, images: imageBase64s }
+                body: formData
 
             })
 
@@ -179,6 +205,13 @@ const handleMsgEnter = async (event) => {
                     scrollToFloor()
                     break;
                 case "done":
+                    if (Array.isArray(data.imageIds) && data.imageIds.length) {
+                        try {
+                            handleFallBacks(data.imageIds, fallBackBlobs.value)
+                        } catch (error) {
+                            Error('兜底图上传错误')
+                        }
+                    }
                     console.log('回复完成')
                     break;
                 case "error":
@@ -190,40 +223,29 @@ const handleMsgEnter = async (event) => {
         console.error('字段拼接异常：', error);
         assistantMsg.content.value = "消息生成异常"
     }
-    finally {
-        imageBase64s.length = 0 //  响应式数组置空
-    }
+
 }
 
 //  处理图片上传逻辑
 const fileInput = ref(null);
-const imageUrls = ref([]);
-const imageBase64s = [];
 
 //  图片上传
 const handleFileChange = (e) => {
     const files = e.target.files;
-    if (files.length > 0) {
-        for (const file of files) {
-            //  处理本地预览
-            imageUrls.value.push(URL.createObjectURL(file))
-            //  处理上传
-            const reader = new FileReader();
-            reader.readAsDataURL(file)
-            reader.onloadend = () => {
-                //  读取完毕，数据作为base64格式包含在result中
-                imageBase64s.push(reader.result)
-            }
-        }
+    if (files && files.length > 0) {
+        generatePreviewAndUpload(files)
     }
 };
 
 //  图片粘贴
 const handlePasteImage = (e) => {
-    for (const file of e.clipboardData.files) {
-        if (e.clipboardData.files.length && file.type.includes('image')) {
-            e.preventDefault();
-            imageUrls.value.push(URL.createObjectURL(file));
+    if (e.clipboardData && e.clipboardData.files.length) {
+        const hasImage = Array.from(e.clipboardData.files).some((file) =>
+            file.type.includes('image'),
+        );
+        if (hasImage) {
+            e.preventDefault(); // 只在确认包含图片时阻止默认行为
+            generatePreviewAndUpload(e.clipboardData.files);
         }
     }
 }

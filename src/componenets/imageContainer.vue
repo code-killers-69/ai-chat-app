@@ -3,7 +3,7 @@
         <div class="loadingAnimation" v-if="enableLoadingGif && !isLoaded"> <!--  删掉！ -->
             <img src="/gif/loading.gif" alt="loading">
         </div>
-        <img class='imageBlock noLoading' :src="imageUrl" @load="onLoaded">
+        <img class='noLoading' :src="imageUrl.webpUrl" @load="onLoaded" v-lazy="imageUrl.webpUrl">
     </div>
 </template>
 
@@ -12,7 +12,7 @@ import { ref } from 'vue';
 
 const props = defineProps({
     imageUrl: {
-        type: String,
+        type: Object,
         required: true
     },
     enableLoadingGif: {
