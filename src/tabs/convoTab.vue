@@ -2,15 +2,21 @@
     <div class="container">
         <button class="createNewConvo" @click="handleConvoCreate">New Convo</button>
         <div class="conversation" v-for="(conversation, index) in conversations"
-            @click="choseConvoHandler(conversation)" style="display: flex;"
-            :class="{ selected: conversation.id == conversationIdRef }" :key="conversation.id || index">
+            @click="choseConvoHandler(conversation)" :class="{ selected: conversation.id == conversationIdRef }"
+            :key="conversation.id || index">
             <div class="title">
                 {{ conversation.title }}
             </div>
-            <button class="title-change-btn" @click.stop="shareIndexHandler(index)">change</button>
-            <button class="delete-btn" @click.stop="handleConvoDelete(conversation, index)">Delete</button>
+            <div class="actions-wrapper">   
+                <button class="more-btn">...</button>
+                <div class="action-menu">
+                    <button class="title-change-btn" @click.stop="shareIndexHandler(index)">change</button>
+                    <button class="delete-btn" @click.stop="handleConvoDelete(conversation, index)">Delete</button>
+                </div>
+            </div>
         </div>
-        <input type="text" v-model="newTitle" v-show="showTitleEditor" @keypress="handleTitleChange">
+        <input type="text" v-model="newTitle" v-show="showTitleEditor" @keypress="handleTitleChange"
+            class="title-editor">
     </div>
 </template>
 
@@ -139,12 +145,102 @@ defineExpose({ choseConvo: choseConvoHandler })
 .container {
     display: flex;
     flex-direction: column;
+    padding-top: 60px;
+    width: 100%;
+}
+
+.createNewConvo {
+    margin: 10px;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+}
+
+.conversation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.conversation:hover {
+    background-color: #f0f0f0;
+}
+
+.title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.more-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 0 5px;
+    color: #666;
+}
+
+.action-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    z-index: 10;
+}
+
+.actions-wrapper:hover .action-menu {
+    opacity: 1;
+    visibility: visible;
+}
+
+.action-menu button {
+    background: none;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    white-space: nowrap;
+}
+
+.action-menu button:hover {
+    background-color: #eee;
 }
 
 .selected {
-
     /* background-color: orangered; */
     color: rgb(135, 6, 10);
     font-weight: bolder;
+}
+
+.title-editor {
+    margin: 5px 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
 }
 </style>

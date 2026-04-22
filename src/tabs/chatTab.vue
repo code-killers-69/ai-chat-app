@@ -266,7 +266,8 @@ body {
 .container {
     position: relative;
     height: 100vh;
-    width: 800px;
+    width: 100%;
+    max-width: 800px;
     margin: 0 auto;
     padding: 0 0 40px 0;
     display: flex;
